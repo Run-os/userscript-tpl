@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         OCS-UI-TPL 示例脚本
-// @namespace    https://github.com/<你的用户名>/userscript-tpl
-// @version      1.0.0
-// @description  演示 OCSUITpl 模板用法:悬浮窗 + 配置面板 + 消息 + 弹窗 + 下拉菜单。上传 ocs-ui-tpl.user.js 到 GitHub 后,把下方 @require 的 URL 换成你的仓库地址。
-// @author       you
+// @namespace    https://github.com/Run-os/userscript-tpl
+// @version      1.1.0
+// @description  演示 OCSUITpl 模板用法:悬浮窗 + 配置面板 + 消息 + 弹窗 + 下拉菜单。测试地址: https://example.com/?userscript-tpl
+// @author       Run-os
 // @license      MIT
-// @match        *://*/*
-// @require      https://raw.githubusercontent.com/<你的用户名>/<仓库名>/main/ocs-ui-tpl.user.js
+// @match        https://example.com/*
+// @include      https://example.com/?userscript-tpl
+// @require      https://cdn.jsdelivr.net/gh/Run-os/userscript-tpl@main/ocs-ui-tpl.user.js
 // @grant        unsafeWindow
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -24,8 +25,8 @@
 /**
  * OCS-UI-TPL 示例脚本
  *  - 通过 @require 引入模板(模板挂载的全局对象: window.OCSUITpl / window.EUS)
- *  - 用 createScript 定义「面板」(一个脚本 = 悬浮窗中的一个面板页)
- *  - 用 start 启动悬浮窗
+ *  - 模板链接走 jsDelivr CDN 加速: https://cdn.jsdelivr.net/gh/Run-os/userscript-tpl@main/ocs-ui-tpl.user.js
+ *  - 测试地址: 浏览器打开 https://example.com/?userscript-tpl(脚本仅在此站点运行)
  *  - 面板内: separator(脚本名) + notes(提示块,可多行) + configs(配置表单,自动持久化) + body(自定义内容)
  *  - 全局: $message / $modal / $menu / $ui.* 可供任意位置调用
  */
