@@ -17,7 +17,7 @@
   <script>
     (function () {
       'use strict';
-      const { createScript, start, $ui, $modal, $message, h } = window.OCSUITpl;
+      const { createScript, start, $ui, $modal, $message, $menu, h } = window.OCSUITpl;
 
       const Main = createScript({
         name: '主面板',
@@ -149,6 +149,20 @@
       }
 
       start({ title: '示例脚本', scripts: [Main, About] });
+
+      // 注册标题栏下方的「菜单栏」按钮(OCS 同款: 点击即可切换对应面板)
+      // 注意: 悬浮窗在 readystatechange 后才会挂载($win 就绪),start() 的 Promise 并不会等待它,
+      //       因此需轮询 $elements.currentScriptPanel(悬浮窗渲染完成时被赋值)确认就绪后再注册。
+      (function registerMenus() {
+        var timer = setInterval(function () {
+          if (window.OCSUITpl.$elements.currentScriptPanel) {
+            clearInterval(timer);
+            $menu('主面板', { scriptPanelLink: Main });
+            $menu('关于', { scriptPanelLink: About });
+          }
+        }, 50);
+        setTimeout(function () { clearInterval(timer); }, 5000);
+      })();
     })();
   </script>
 </body>

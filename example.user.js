@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OCS-UI-TPL 示例脚本
 // @namespace    https://github.com/Run-os/userscript-tpl
-// @version      1.2.0
+// @version      1.3.0
 // @description  演示 OCSUITpl 模板用法:悬浮窗 + 配置面板 + 消息 + 弹窗 + 下拉菜单。测试地址: https://example.com/?userscript-tpl
 // @author       Run-os
 // @license      MIT
@@ -33,7 +33,7 @@
 (function () {
 	'use strict';
 
-	const { createScript, start, $ui, $modal, $message, h } = window.OCSUITpl;
+	const { createScript, start, $ui, $modal, $message, $menu, h } = window.OCSUITpl;
 
 	// ---------------------------------------------------------------
 	// 面板 1 「主面板」: 演示 notes + configs + onrender 自定义内容
@@ -194,4 +194,18 @@
 		title: '示例脚本', // 窗口标题(可显示版本号等)
 		scripts: [Main, About] // 悬浮窗中会出现两个面板页,可通过标题栏下拉切换
 	});
+
+	// 注册标题栏下方的「菜单栏」按钮(OCS 同款: 点击即可切换对应面板)
+	// 注意: 悬浮窗在 readystatechange 后才会挂载($win 就绪),start() 的 Promise 并不会等待它,
+	//       因此需轮询 $elements.currentScriptPanel(悬浮窗渲染完成时被赋值)确认就绪后再注册。
+	(function registerMenus() {
+		const timer = setInterval(() => {
+			if (window.OCSUITpl.$elements.currentScriptPanel) {
+				clearInterval(timer);
+				$menu('主面板', { scriptPanelLink: Main });
+				$menu('关于', { scriptPanelLink: About });
+			}
+		}, 50);
+		setTimeout(() => clearInterval(timer), 5000);
+	})();
 })();
