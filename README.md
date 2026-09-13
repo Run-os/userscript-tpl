@@ -154,10 +154,7 @@ h('tag', attrs, handler) // 通用元素工厂(支持自定义元素 tag)
 5. **多脚本共享配置时请给不同 `namespace`**,否则配置键相互覆盖。
 6. 配置存储基于 GM API;`@grant` 缺失时降级为内存存储(仅当前会话、且 `MemoryStoreProvider` 为进程内共享)。
 7. **`$menu()` 必须在悬浮窗就绪后调用**:`start()` 的 Promise 不会等待悬浮窗挂载(挂载发生在 `readystatechange` 之后),此时调用会静默失败。请轮询 `OCSUITpl.$elements.currentScriptPanel` 确认就绪后再注册菜单栏按钮(参考 `example.user.js`)。
-8. **LLM 界面集成的是 [Page Agent](https://github.com/alibaba/page-agent)**(纯 JS GUI Agent,无言后端/插件),通过 CDN 动态加载并默认不自动创建:**只有点击 LLM 面板里的「启动 Agent」才加载 CDN(带 `autoInit=false` 只引库、不自动建 Demo Agent,再 `new window.PageAgent(config)` 并 `panel.show()`)**。两处可选项:
-   - **PageAgent CDN 下拉**:默认 npmmirror 镜像(`https://registry.npmmirror.com/page-agent/1.12.4/files/dist/iife/page-agent.demo.js`),备选 jsDelivr;
-   - **「使用 Demo 免费测试 API」开关**:勾选后免填 Key,自动使用 page-agent 内置免费测试服务(`qwen3.5-plus` + 阿里测试端点,**仅技术评估**);不勾选则必须填写自己的 API Key,否则执行指令会报 `Authentication failed`。改/填 Key 后须重新点「启动 Agent」。
-   自然语言指令通过 `agent.execute()` 执行。
+8. **LLM 界面集成的是 [Page Agent](https://github.com/alibaba/page-agent)**(纯 JS GUI Agent,无言后端/插件),通过 CDN 动态加载并默认不自动创建:**只有点击 LLM 面板里的「启动 Agent」才加载 CDN(带 `autoInit=false` 只引库、不自动建 Demo Agent,再 `new window.PageAgent(config)` 并 `panel.show()`)**。固定使用 **npmmirror 镜像** CDN(`https://registry.npmmirror.com/page-agent/1.12.4/files/dist/iife/page-agent.demo.js`,与 jsDelivr 为同一份 npm 包,均支持自定义 LLM 参数),语言固定中文(zh-CN)。LLM 面板的「**使用 Demo 免费测试 API**」开关勾选后自动隐藏模型/地址/Key 配置(`showIf` 联动),并套用内置免费测试服务(`qwen3.5-plus` + 阿里测试端点,**仅技术评估**);不勾选则填写自己的 API Key,否则执行指令会报 `Authentication failed`。改/填 Key 后须重新点「启动 Agent」。自然语言指令通过 `agent.execute()` 执行。
 
 ## 许可
 

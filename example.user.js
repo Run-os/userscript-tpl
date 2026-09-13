@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OCS-UI-TPL 示例脚本
 // @namespace    https://github.com/Run-os/userscript-tpl
-// @version      1.4.3
+// @version      1.4.4
 // @description  演示 OCSUITpl 模板用法:悬浮窗 + 配置面板 + 消息 + 弹窗 + 下拉菜单。测试地址: https://example.com/?userscript-tpl
 // @author       Run-os
 // @license      MIT
@@ -118,36 +118,29 @@
 	// 参考: https://github.com/alibaba/page-agent
 	//  - ?autoInit=false: 只加载库,不自动创建 Demo Agent
 	//  - 从「LLM 界面」点击「启动 Agent」才 new PageAgent + 显示其面板
-	//  - CDN 可在面板下拉中选择(默认 npmmirror 镜像)
+	//  - 固定使用 npmmirror 镜像 CDN(与 jsDelivr 为同一份 npm 包, 均支持自定义 LLM 参数)
 	// ---------------------------------------------------------------
-	const PAGE_AGENT_CDNS = {
-		npmmirror: 'https://registry.npmmirror.com/page-agent/1.12.4/files/dist/iife/page-agent.demo.js?autoInit=false',
-		jsdelivr: 'https://cdn.jsdelivr.net/npm/page-agent@1.12.4/dist/iife/page-agent.demo.js?autoInit=false'
-	};
+	const PAGE_AGENT_CDN =
+		'https://registry.npmmirror.com/page-agent/1.12.4/files/dist/iife/page-agent.demo.js?autoInit=false';
 
 	let pageAgentLibPromise = null; // PageAgent CDN 加载 Promise(幂等单例)
-	let pageAgentLoadedCdn = null; // 已加载的 CDN 标识
 
-	/** 按选中 CDN 动态加载 PageAgent 库,返回 window.PageAgent 类 */
-	function loadPageAgentLib(cdnKey) {
-		const url = PAGE_AGENT_CDNS[cdnKey] || PAGE_AGENT_CDNS.npmmirror;
-		// 同一 CDN 已加载过,直接复用
-		if (window.PageAgent && pageAgentLoadedCdn === cdnKey) return Promise.resolve(window.PageAgent);
-		// 进行中的同一次加载
+	/** 动态加载 PageAgent 库(固定 npmmirror),返回 window.PageAgent 类 */
+	function loadPageAgentLib() {
+		if (window.PageAgent) return Promise.resolve(window.PageAgent);
 		if (pageAgentLibPromise) return pageAgentLibPromise;
 		pageAgentLibPromise = new Promise((resolve, reject) => {
 			const script = document.createElement('script');
-			script.src = url;
+			script.src = PAGE_AGENT_CDN;
 			script.crossOrigin = 'anonymous';
 			script.onload = () => {
 				pageAgentLibPromise = null;
-				pageAgentLoadedCdn = cdnKey;
 				if (window.PageAgent) resolve(window.PageAgent);
 				else reject(new Error('page-agent 加载完成但未找到 window.PageAgent'));
 			};
 			script.onerror = () => {
 				pageAgentLibPromise = null;
-				reject(new Error('page-agent CDN 加载失败: ' + url));
+				reject(new Error('page-agent CDN 加载失败: ' + PAGE_AGENT_CDN));
 			};
 			document.head.appendChild(script);
 		});
@@ -159,23 +152,29 @@
 		name: 'LLM 界面',
 		notes: [
 			'Page Agent: 纯 JS 的 GUI Agent,用自然语言操作当前页面。',
-			['默认不自动创建 Demo Agent: 点击下方「启动 Agent」才加载 CDN 并初始化。', '勾选「Demo 免费测试 API」可免填 Key(技术评估用,请求发往阿里免费测试服务);否则必须填写自己的 API Key。']
+			['默认不自动创建 Demo Agent: 点击下方「启动 Agent」才加载 CDN 并初始化。', '勾选「Demo 免费测试 API」可免填 Key(技术评估用);否则填写自己的 API Key。']
 		],
 		configs: {
-			useDemoAPI: { label: '使用 Demo 免费测试 API', defaultValue: false, attrs: { type: 'checkbox' } }, // 开关: 免填 Key, 用 page-agent demo 内置免费测试服务
-			cdn: {
-				label: 'PageAgent CDN',
-				defaultValue: 'npmmirror',
-				tag: 'select',
-				options: [
-					['npmmirror', 'npmmirror (默认)'],
-					['jsdelivr', 'jsDelivr']
-				]
+			useDemoAPI: { label: '使用 Demo 免费测试 API', defaultValue: false, attrs: { type: 'checkbox' } }, // 开关: 免填 Key, 用内置免费测试服务; 勾选后下方 模型/地址/Key 自动隐藏
+			// 自定义 LLM 参数(勾选 Demo 时隐藏): showIf 数组 [完整key, 判定函数] —— key 需带 namespace 前缀(默认=面板名)
+			model: {
+				label: '模型',
+				defaultValue: 'qwen3.5-plus',
+				attrs: { placeholder: '如 qwen3.5-plus / gpt-4o' },
+				showIf: ['LLM 界面.useDemoAPI', (val) => !val]
 			},
-			model: { label: '模型', defaultValue: 'qwen3.5-plus', attrs: { placeholder: '如 qwen3.5-plus / gpt-4o' } },
-			baseURL: { label: 'API 地址', defaultValue: 'https://dashscope.aliyuncs.com/compatible-mode/v1', attrs: { placeholder: 'OpenAI 兼容接口' } },
-			apiKey: { label: 'API Key', defaultValue: '', attrs: { type: 'password', placeholder: '勾选 Demo 后可留空' } },
-			language: { label: '语言', defaultValue: 'zh-CN', tag: 'select', options: [['中文', 'zh-CN'], ['English', 'en']] },
+			baseURL: {
+				label: 'API 地址',
+				defaultValue: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+				attrs: { placeholder: 'OpenAI 兼容接口' },
+				showIf: ['LLM 界面.useDemoAPI', (val) => !val]
+			},
+			apiKey: {
+				label: 'API Key',
+				defaultValue: '',
+				attrs: { type: 'password', placeholder: '勾选 Demo 后可留空' },
+				showIf: ['LLM 界面.useDemoAPI', (val) => !val]
+			},
 			maxSteps: { label: '最大步数', defaultValue: 40, attrs: { type: 'number', min: 1, max: 200 } }
 		},
 		onrender({ panel }) {
@@ -187,10 +186,9 @@
 			const startBtn = $ui.button('启动 Agent', {}, (btn) => {
 				btn.onclick = async () => {
 					try {
-						const cdnKey = LLM.cfg.cdn || 'npmmirror';
 						const useDemo = !!LLM.cfg.useDemoAPI;
-						setStatus('正在加载 page-agent CDN(' + cdnKey + ')...');
-						await loadPageAgentLib(cdnKey);
+						setStatus('正在加载 page-agent CDN(npmmirror)...');
+						await loadPageAgentLib();
 						if (window.pageAgent) {
 							try { window.pageAgent.dispose(); } catch (e) { /* 忽略旧实例销毁异常 */ }
 							window.pageAgent = null;
@@ -201,20 +199,20 @@
 								model: 'qwen3.5-plus',
 								baseURL: 'https://page-ag-testing-ohftxirgbn.cn-shanghai.fcapp.run',
 								apiKey: 'NA',
-								language: LLM.cfg.language,
+								language: 'zh-CN',
 								maxSteps: LLM.cfg.maxSteps
 							}
 							: {
 								model: LLM.cfg.model,
 								baseURL: LLM.cfg.baseURL || undefined,
 								apiKey: LLM.cfg.apiKey || undefined,
-								language: LLM.cfg.language,
+								language: 'zh-CN',
 								maxSteps: LLM.cfg.maxSteps
 							};
 						window.pageAgent = new window.PageAgent(agentConfig);
 						window.pageAgent.panel.show();
 						if (useDemo || LLM.cfg.apiKey) {
-							setStatus('已启动 ✓ CDN=' + cdnKey + (useDemo ? ' [Demo 免费测试 API]' : ' 模型=' + LLM.cfg.model) + '(PageAgent 面板已显示,可输入自然语言指令)');
+							setStatus('已启动 ✓' + (useDemo ? ' [Demo 免费测试 API]' : ' 模型=' + LLM.cfg.model) + '(PageAgent 面板已显示,可输入自然语言指令)');
 							$message.success('PageAgent 已启动' + (useDemo ? '(Demo 免费测试,仅技术评估)' : ''));
 						} else {
 							setStatus('已启动, 但未填写 API Key — 可勾选「Demo 免费测试 API」或填写自己的 Key 后重新启动');

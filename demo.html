@@ -84,32 +84,26 @@
       // LLM 界面: 通过 CDN 集成 Page Agent(GUI Agent),点击才启动
       // 参考: https://github.com/alibaba/page-agent
       // ?autoInit=false: 只加载库,不自动创建 Demo Agent
-      // CDN 可在面板下拉中选择(默认 npmmirror 镜像)
+      // 固定使用 npmmirror 镜像 CDN(与 jsDelivr 为同一份 npm 包, 均支持自定义 LLM 参数)
       // ---------------------------------------------------------------
-      var PAGE_AGENT_CDNS = {
-        npmmirror: 'https://registry.npmmirror.com/page-agent/1.12.4/files/dist/iife/page-agent.demo.js?autoInit=false',
-        jsdelivr: 'https://cdn.jsdelivr.net/npm/page-agent@1.12.4/dist/iife/page-agent.demo.js?autoInit=false'
-      };
+      var PAGE_AGENT_CDN = 'https://registry.npmmirror.com/page-agent/1.12.4/files/dist/iife/page-agent.demo.js?autoInit=false';
       var pageAgentLibPromise = null;
-      var pageAgentLoadedCdn = null;
 
-      function loadPageAgentLib(cdnKey) {
-        var url = PAGE_AGENT_CDNS[cdnKey] || PAGE_AGENT_CDNS.npmmirror;
-        if (window.PageAgent && pageAgentLoadedCdn === cdnKey) return Promise.resolve(window.PageAgent);
+      function loadPageAgentLib() {
+        if (window.PageAgent) return Promise.resolve(window.PageAgent);
         if (pageAgentLibPromise) return pageAgentLibPromise;
         pageAgentLibPromise = new Promise(function (resolve, reject) {
           var script = document.createElement('script');
-          script.src = url;
+          script.src = PAGE_AGENT_CDN;
           script.crossOrigin = 'anonymous';
           script.onload = function () {
             pageAgentLibPromise = null;
-            pageAgentLoadedCdn = cdnKey;
             if (window.PageAgent) resolve(window.PageAgent);
             else reject(new Error('page-agent 加载完成但未找到 window.PageAgent'));
           };
           script.onerror = function () {
             pageAgentLibPromise = null;
-            reject(new Error('page-agent CDN 加载失败: ' + url));
+            reject(new Error('page-agent CDN 加载失败: ' + PAGE_AGENT_CDN));
           };
           document.head.appendChild(script);
         });
@@ -120,23 +114,14 @@
         name: 'LLM 界面',
         notes: [
           'Page Agent: 纯 JS 的 GUI Agent,用自然语言操作当前页面。',
-          ['默认不自动创建 Demo Agent: 点击下方「启动 Agent」才加载 CDN 并初始化。', '勾选「Demo 免费测试 API」可免填 Key(技术评估用,请求发往阿里免费测试服务);否则必须填写自己的 API Key。']
+          ['默认不自动创建 Demo Agent: 点击下方「启动 Agent」才加载 CDN 并初始化。', '勾选「Demo 免费测试 API」可免填 Key(技术评估用);否则填写自己的 API Key。']
         ],
         configs: {
           useDemoAPI: { label: '使用 Demo 免费测试 API', defaultValue: false, attrs: { type: 'checkbox' } },
-          cdn: {
-            label: 'PageAgent CDN',
-            defaultValue: 'npmmirror',
-            tag: 'select',
-            options: [
-              ['npmmirror', 'npmmirror (默认)'],
-              ['jsdelivr', 'jsDelivr']
-            ]
-          },
-          model: { label: '模型', defaultValue: 'qwen3.5-plus', attrs: { placeholder: '如 qwen3.5-plus / gpt-4o' } },
-          baseURL: { label: 'API 地址', defaultValue: 'https://dashscope.aliyuncs.com/compatible-mode/v1', attrs: { placeholder: 'OpenAI 兼容接口' } },
-          apiKey: { label: 'API Key', defaultValue: '', attrs: { type: 'password', placeholder: '勾选 Demo 后可留空' } },
-          language: { label: '语言', defaultValue: 'zh-CN', tag: 'select', options: [['中文', 'zh-CN'], ['English', 'en']] },
+          // 自定义 LLM 参数(勾选 Demo 时隐藏): showIf 数组 [完整key, 判定函数] —— key 需带 namespace 前缀(默认=面板名)
+          model: { label: '模型', defaultValue: 'qwen3.5-plus', attrs: { placeholder: '如 qwen3.5-plus / gpt-4o' }, showIf: ['LLM 界面.useDemoAPI', function (val) { return !val; }] },
+          baseURL: { label: 'API 地址', defaultValue: 'https://dashscope.aliyuncs.com/compatible-mode/v1', attrs: { placeholder: 'OpenAI 兼容接口' }, showIf: ['LLM 界面.useDemoAPI', function (val) { return !val; }] },
+          apiKey: { label: 'API Key', defaultValue: '', attrs: { type: 'password', placeholder: '勾选 Demo 后可留空' }, showIf: ['LLM 界面.useDemoAPI', function (val) { return !val; }] },
           maxSteps: { label: '最大步数', defaultValue: 40, attrs: { type: 'number', min: 1, max: 200 } }
         },
         onrender({ panel }) {
@@ -147,10 +132,9 @@
           var startBtn = $ui.button('启动 Agent', {}, function (btn) {
             btn.onclick = async function () {
               try {
-                var cdnKey = LLM.cfg.cdn || 'npmmirror';
                 var useDemo = !!LLM.cfg.useDemoAPI;
-                setStatus('正在加载 page-agent CDN(' + cdnKey + ')...');
-                await loadPageAgentLib(cdnKey);
+                setStatus('正在加载 page-agent CDN(npmmirror)...');
+                await loadPageAgentLib();
                 if (window.pageAgent) { try { window.pageAgent.dispose(); } catch (e) {} window.pageAgent = null; }
                 // 勾选 Demo 免费测试 API 时, 套用 page-agent 内置免费测试服务(无需自己的 Key)
                 var agentConfig = useDemo
@@ -158,20 +142,20 @@
                       model: 'qwen3.5-plus',
                       baseURL: 'https://page-ag-testing-ohftxirgbn.cn-shanghai.fcapp.run',
                       apiKey: 'NA',
-                      language: LLM.cfg.language,
+                      language: 'zh-CN',
                       maxSteps: LLM.cfg.maxSteps
                     }
                   : {
                       model: LLM.cfg.model,
                       baseURL: LLM.cfg.baseURL || undefined,
                       apiKey: LLM.cfg.apiKey || undefined,
-                      language: LLM.cfg.language,
+                      language: 'zh-CN',
                       maxSteps: LLM.cfg.maxSteps
                     };
                 window.pageAgent = new window.PageAgent(agentConfig);
                 window.pageAgent.panel.show();
                 if (useDemo || LLM.cfg.apiKey) {
-                  setStatus('已启动 ✓ CDN=' + cdnKey + (useDemo ? ' [Demo 免费测试 API]' : ' 模型=' + LLM.cfg.model) + '(PageAgent 面板已显示,可输入自然语言指令)');
+                  setStatus('已启动 ✓' + (useDemo ? ' [Demo 免费测试 API]' : ' 模型=' + LLM.cfg.model) + '(PageAgent 面板已显示,可输入自然语言指令)');
                   $message.success('PageAgent 已启动' + (useDemo ? '(Demo 免费测试,仅技术评估)' : ''));
                 } else {
                   setStatus('已启动, 但未填写 API Key — 可勾选「Demo 免费测试 API」或填写自己的 Key 后重新启动');
