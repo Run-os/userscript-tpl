@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OCS-UI-TPL 示例脚本
 // @namespace    https://github.com/Run-os/userscript-tpl
-// @version      1.4.1
+// @version      1.4.2
 // @description  演示 OCSUITpl 模板用法:悬浮窗 + 配置面板 + 消息 + 弹窗 + 下拉菜单。测试地址: https://example.com/?userscript-tpl
 // @author       Run-os
 // @license      MIT
@@ -242,6 +242,15 @@
 					const a = getAgent();
 					const text = taskInput.value.trim();
 					if (!a) { $modal.alert({ title: '提示', content: '请先点击「启动 Agent」' }); return; }
+					// 拦截空 Key: 避免执行时才收到晦涩的 Authentication failed
+					// 注意: 实例配置在「启动 Agent」那一刻创建, 改/填 Key 后必须重新启动
+					if (!LLM.cfg.apiKey || !(a.config && a.config.apiKey)) {
+						$modal.alert({
+							title: '未配置 API Key',
+							content: '请在「API Key」输入你的密钥, 然后重新点击「启动 Agent」使配置生效。'
+						});
+						return;
+					}
 					if (!text) { $message.warn('请输入指令'); return; }
 					try {
 						setStatus('执行中: ' + text);
