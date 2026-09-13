@@ -26,7 +26,7 @@
           ['配置项修改后自动保存。', '刷新页面后依然生效(内存模式则只在当前会话有效)。']
         ],
         configs: {
-          enabled: { label: '启用功能', defaultValue: true },
+          enabled: { label: '启用功能', defaultValue: true, attrs: { type: 'checkbox' } },
           speed: { label: '执行速度', defaultValue: 2, attrs: { type: 'number', min: 1, max: 10, step: 1 } },
           mode: { label: '模式', defaultValue: 'auto', tag: 'select', options: [['auto', '自动'], ['manual', '手动']] },
           remark: { label: '备注', defaultValue: '', tag: 'textarea', attrs: { rows: 2, placeholder: '选填' } }
@@ -120,9 +120,10 @@
         name: 'LLM 界面',
         notes: [
           'Page Agent: 纯 JS 的 GUI Agent,用自然语言操作当前页面。',
-          ['默认不自动创建 Demo Agent: 点击下方「启动 Agent」才加载 CDN 并初始化。', '必须填写有效 API Key,否则执行指令会报 Authentication failed。']
+          ['默认不自动创建 Demo Agent: 点击下方「启动 Agent」才加载 CDN 并初始化。', '勾选「Demo 免费测试 API」可免填 Key(技术评估用,请求发往阿里免费测试服务);否则必须填写自己的 API Key。']
         ],
         configs: {
+          useDemoAPI: { label: '使用 Demo 免费测试 API', defaultValue: false, attrs: { type: 'checkbox' } },
           cdn: {
             label: 'PageAgent CDN',
             defaultValue: 'npmmirror',
@@ -134,7 +135,7 @@
           },
           model: { label: '模型', defaultValue: 'qwen3.5-plus', attrs: { placeholder: '如 qwen3.5-plus / gpt-4o' } },
           baseURL: { label: 'API 地址', defaultValue: 'https://dashscope.aliyuncs.com/compatible-mode/v1', attrs: { placeholder: 'OpenAI 兼容接口' } },
-          apiKey: { label: 'API Key', defaultValue: '', attrs: { type: 'password', placeholder: '必填, 执行指令时需要' } },
+          apiKey: { label: 'API Key', defaultValue: '', attrs: { type: 'password', placeholder: '勾选 Demo 后可留空' } },
           language: { label: '语言', defaultValue: 'zh-CN', tag: 'select', options: [['中文', 'zh-CN'], ['English', 'en']] },
           maxSteps: { label: '最大步数', defaultValue: 40, attrs: { type: 'number', min: 1, max: 200 } }
         },
@@ -147,23 +148,34 @@
             btn.onclick = async function () {
               try {
                 var cdnKey = LLM.cfg.cdn || 'npmmirror';
+                var useDemo = !!LLM.cfg.useDemoAPI;
                 setStatus('正在加载 page-agent CDN(' + cdnKey + ')...');
                 await loadPageAgentLib(cdnKey);
                 if (window.pageAgent) { try { window.pageAgent.dispose(); } catch (e) {} window.pageAgent = null; }
-                window.pageAgent = new window.PageAgent({
-                  model: LLM.cfg.model,
-                  baseURL: LLM.cfg.baseURL || undefined,
-                  apiKey: LLM.cfg.apiKey || undefined,
-                  language: LLM.cfg.language,
-                  maxSteps: LLM.cfg.maxSteps
-                });
+                // 勾选 Demo 免费测试 API 时, 套用 page-agent 内置免费测试服务(无需自己的 Key)
+                var agentConfig = useDemo
+                  ? {
+                      model: 'qwen3.5-plus',
+                      baseURL: 'https://page-ag-testing-ohftxirgbn.cn-shanghai.fcapp.run',
+                      apiKey: 'NA',
+                      language: LLM.cfg.language,
+                      maxSteps: LLM.cfg.maxSteps
+                    }
+                  : {
+                      model: LLM.cfg.model,
+                      baseURL: LLM.cfg.baseURL || undefined,
+                      apiKey: LLM.cfg.apiKey || undefined,
+                      language: LLM.cfg.language,
+                      maxSteps: LLM.cfg.maxSteps
+                    };
+                window.pageAgent = new window.PageAgent(agentConfig);
                 window.pageAgent.panel.show();
-                if (LLM.cfg.apiKey) {
-                  setStatus('已启动 ✓ CDN=' + cdnKey + ' 模型=' + LLM.cfg.model + '(PageAgent 面板已显示,可输入自然语言指令)');
-                  $message.success('PageAgent 已启动');
+                if (useDemo || LLM.cfg.apiKey) {
+                  setStatus('已启动 ✓ CDN=' + cdnKey + (useDemo ? ' [Demo 免费测试 API]' : ' 模型=' + LLM.cfg.model) + '(PageAgent 面板已显示,可输入自然语言指令)');
+                  $message.success('PageAgent 已启动' + (useDemo ? '(Demo 免费测试,仅技术评估)' : ''));
                 } else {
-                  setStatus('已启动, 但未填写 API Key — 执行指令会报 Authentication failed');
-                  $message.warn('未填写 API Key, 请先在「API Key」输入你的密钥');
+                  setStatus('已启动, 但未填写 API Key — 可勾选「Demo 免费测试 API」或填写自己的 Key 后重新启动');
+                  $message.warn('未配置 API Key, 请勾选「Demo 免费测试 API」或填写自己的密钥');
                 }
               } catch (e) {
                 setStatus('启动失败');
@@ -193,10 +205,10 @@
               var a = getAgent();
               var text = taskInput.value.trim();
               if (!a) { $modal.alert({ title: '提示', content: '请先点击「启动 Agent」' }); return; }
-              // 拦截空 Key: 避免执行时才收到晦涩的 Authentication failed
-              // 注意: 实例配置在「启动 Agent」那一刻创建, 改/填 Key 后必须重新启动
-              if (!LLM.cfg.apiKey || !(a.config && a.config.apiKey)) {
-                $modal.alert({ title: '未配置 API Key', content: '请在「API Key」输入你的密钥, 然后重新点击「启动 Agent」使配置生效。' });
+              // 拦截无 Key: 自定义模式未填 Key 会在服务端报 Authentication failed
+              // 注意: 实例配置在「启动 Agent」那一刻创建, 改/填 Key 或勾选 Demo 后必须重新启动
+              if (!(a.config && a.config.apiKey)) {
+                $modal.alert({ title: '未配置 API Key', content: '请勾选「Demo 免费测试 API」, 或在「API Key」填写你的密钥, 然后重新点击「启动 Agent」。' });
                 return;
               }
               if (!text) { $message.warn('请输入指令'); return; }
