@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OCS-UI-TPL 油猴脚本 UI 模板
 // @namespace    https://github.com/ocsjs/easy-us
-// @version      1.1.0
+// @version      1.2.0
 // @description  OCS 网课助手同款悬浮窗 UI 模板(基于 easy-us + OCS 通用样式)。可被其他油猴脚本通过 @require 引用,快速搭建 悬浮窗/配置面板/消息/弹窗 UI。详情见 README。
 // @author       enncy (easy-us) + tpl
 // @license      MIT
@@ -2076,7 +2076,7 @@
       }
     }
     setFontSize(fontsize) {
-      this.container.style.font = `${fontsize}px  Menlo, Monaco, Consolas, 'Courier New', monospace`;
+      this.container.style.font = `${fontsize}px  "LXGW Bright", Menlo, Monaco, Consolas, "Courier New", monospace`;
     }
     setVisual(value) {
       this.container.className = "";
@@ -3208,7 +3208,7 @@ border: 1px solid #929292;
 height: fit-content;
 transform: translate(-50%, -50%);
 padding: 12px 18px 18px 18px;
-font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
+font-family: "LXGW Bright", Menlo, Monaco, Consolas, "Courier New", monospace;
 z-index: 99999999999;
 line-height: 24px;
 }
@@ -3360,7 +3360,7 @@ left: 0px;
 z-index: 9999999;
 background-color: rgba(0, 0, 0, 0.265);
 color: #636363;
-font: 14px Menlo, Monaco, Consolas, 'Courier New', monospace;
+font: 14px "LXGW Bright", Menlo, Monaco, Consolas, "Courier New", monospace;
 }
 .pointer {
 cursor: pointer;
@@ -3649,6 +3649,17 @@ function createProject(name, scripts, domains) {
  */
 function start(options) {
   options = options || {};
+  // 加载 LXGW Bright 字体(霞鹜文楷 Bright, 主文档 link 方式, shadow 内样式可直接使用)
+  // 幂等: 已注入过则跳过
+  const LXGW_CSS = 'https://cn-font.claude-code-best.win/packages/lxgwwenkaibright/dist/LXGWBright-Regular/result.css';
+  if (!document.querySelector('link[data-ocs-tpl-font]')) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = LXGW_CSS;
+    link.setAttribute('data-ocs-tpl-font', '1');
+    (document.head || document.documentElement).appendChild(link);
+  }
+
   const title = options.title || '脚本面板';
   const styles = Array.isArray(options.styles) ? options.styles : [options.styles].filter(Boolean);
   const allStyles = options.useDefaultStyles === false ? styles.slice() : OCS_UI_DEFAULT_STYLES.concat(styles);
@@ -3693,7 +3704,7 @@ function start(options) {
 }
 
 const OCSUITpl = {
-  VERSION: '1.1.0',
+  VERSION: '1.2.0',
   EUS: EUS,
   Script: EUS.Script,
   Project: EUS.Project,

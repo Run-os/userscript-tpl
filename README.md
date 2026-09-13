@@ -123,7 +123,8 @@
 | `defaultPanelName` | 默认面板 id,默认取第一个脚本 |
 | `mountElement` | 挂载父元素,默认 body |
 
-`start` 会自动创建 OCS 同款「**窗口设置**」面板(出现在面板切换列表),内含**字体大小**(12–24px,修改实时生效,等宽字体族 `Menlo, Monaco, Consolas`)、**窗口显示连点次数**、**隐藏窗口**等选项,与 OCS 原脚本一致。
+`start` 会自动创建 OCS 同款「**窗口设置**」面板(出现在面板切换列表),内含**字体大小**(12–24px,修改实时生效)、**窗口显示连点次数**、**隐藏窗口**等选项,与 OCS 原脚本一致。
+> 字体:悬浮窗默认使用 **LXGW Bright(霞鹜文楷 Bright)** 开源字体(通过 `https://cn-font.claude-code-best.win/.../result.css` 按 unicode-range 分片按需加载,中文优先 LXGW Bright、回退等宽字体),无需手动配置。
 
 ### 组件快捷方式
 
