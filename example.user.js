@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OCS-UI-TPL 示例脚本
 // @namespace    https://github.com/Run-os/userscript-tpl
-// @version      1.5.0
+// @version      1.5.1
 // @description  演示 OCSUITpl 模板用法:悬浮窗 + 配置面板 + 消息 + 弹窗 + 下拉菜单。测试地址: https://example.com/?userscript-tpl
 // @author       Run-os
 // @license      MIT
