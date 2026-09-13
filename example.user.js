@@ -7,7 +7,7 @@
 // @license      MIT
 // @match        https://example.com/*
 // @include      https://example.com/?userscript-tpl
-// @require      https://cdn.jsdelivr.net/gh/Run-os/userscript-tpl@1b2444d/ocs-ui-tpl.user.js // 固定 commit, 规避 jsDelivr @main 缓存滞后
+// @require      https://cdn.jsdelivr.net/gh/Run-os/userscript-tpl@1b2444d/ocs-ui-tpl.user.js
 // @grant        unsafeWindow
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -32,6 +32,15 @@
  */
 (function () {
 	'use strict';
+
+	// 防御: @require 的模板(OCSUITpl)未加载成功时给出明确提示
+	if (!window.OCSUITpl) {
+		console.error('[OCS-UI-TPL 示例] 模板加载失败: window.OCSUITpl 为 undefined。请确认 @require 的 jsDelivr/GitHub 链接可访问, 并重新安装脚本。');
+		if (typeof alert === 'function') {
+			alert('OCS-UI-TPL 示例: 模板未加载成功(window.OCSUITpl 不存在), 请检查 @require 链接可访问后重新安装脚本。');
+		}
+		return;
+	}
 
 	const { createScript, createProject, start, $ui, $modal, $message, $menu, h } = window.OCSUITpl;
 
