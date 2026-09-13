@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OCS-UI-TPL 示例脚本
 // @namespace    https://github.com/Run-os/userscript-tpl
-// @version      1.3.0
+// @version      1.4.0
 // @description  演示 OCSUITpl 模板用法:悬浮窗 + 配置面板 + 消息 + 弹窗 + 下拉菜单。测试地址: https://example.com/?userscript-tpl
 // @author       Run-os
 // @license      MIT
@@ -114,6 +114,134 @@
 	});
 
 	// ---------------------------------------------------------------
+	// LLM 界面: 通过 CDN 集成 Page Agent(GUI Agent),点击才启动
+	// 参考: https://github.com/alibaba/page-agent
+	//  - ?autoInit=false: 只加载库,不自动创建 Demo Agent
+	//  - 从「LLM 界面」点击「启动 Agent」才 new PageAgent + 显示其面板
+	// ---------------------------------------------------------------
+	const PAGE_AGENT_CDN =
+		'https://cdn.jsdelivr.net/npm/page-agent@1.12.4/dist/iife/page-agent.demo.js?autoInit=false';
+	// 备用镜像(官方 README 提供):
+	// https://registry.npmmirror.com/page-agent/1.12.4/files/dist/iife/page-agent.demo.js?autoInit=false
+
+	let pageAgentLibPromise = null; // PageAgent CDN 加载 Promise(幂等单例)
+
+	/** 动态加载 PageAgent 库,返回 window.PageAgent 类 */
+	function loadPageAgentLib() {
+		if (window.PageAgent) return Promise.resolve(window.PageAgent);
+		if (pageAgentLibPromise) return pageAgentLibPromise;
+		pageAgentLibPromise = new Promise((resolve, reject) => {
+			const script = document.createElement('script');
+			script.src = PAGE_AGENT_CDN;
+			script.crossOrigin = 'anonymous';
+			script.onload = () => {
+				if (window.PageAgent) resolve(window.PageAgent);
+				else {
+					pageAgentLibPromise = null;
+					reject(new Error('page-agent 加载完成但未找到 window.PageAgent'));
+				}
+			};
+			script.onerror = () => {
+				pageAgentLibPromise = null;
+				reject(new Error('page-agent CDN 加载失败,请检查网络'));
+			};
+			document.head.appendChild(script);
+		});
+		return pageAgentLibPromise;
+	}
+
+	/** LLM 面板: 配置大模型参数,点击「启动 Agent」才初始化(默认不自动创建) */
+	const LLM = createScript({
+		name: 'LLM 界面',
+		notes: [
+			'Page Agent: 纯 JS 的 GUI Agent,用自然语言操作当前页面。',
+			['默认不自动创建 Demo Agent: 点击下方「启动 Agent」才加载 CDN 并初始化。', '需要可用的 LLM API(模型 / 接口地址 / Key)。']
+		],
+		configs: {
+			model: { label: '模型', defaultValue: 'qwen3.5-plus', attrs: { placeholder: '如 qwen3.5-plus / gpt-4o' } },
+			baseURL: { label: 'API 地址', defaultValue: 'https://dashscope.aliyuncs.com/compatible-mode/v1', attrs: { placeholder: 'OpenAI 兼容接口' } },
+			apiKey: { label: 'API Key', defaultValue: '', attrs: { type: 'password', placeholder: '填写你的 Key' } },
+			language: { label: '语言', defaultValue: 'zh-CN', tag: 'select', options: [['中文', 'zh-CN'], ['English', 'en']] },
+			maxSteps: { label: '最大步数', defaultValue: 40, attrs: { type: 'number', min: 1, max: 200 } }
+		},
+		onrender({ panel }) {
+			const status = h('p', { className: 'secondary' }, '状态: 未启动(点击「启动 Agent」才会创建,不会自动初始化 Demo Agent)');
+			const setStatus = (text) => { status.textContent = '状态: ' + text; };
+			const getAgent = () => (window.pageAgent && !window.pageAgent.disposed ? window.pageAgent : null);
+
+			// 启动 Agent: 按当前配置创建 PageAgent 实例并显示其面板
+			const startBtn = $ui.button('启动 Agent', {}, (btn) => {
+				btn.onclick = async () => {
+					try {
+						setStatus('正在加载 page-agent CDN...');
+						await loadPageAgentLib();
+						if (window.pageAgent) {
+							try { window.pageAgent.dispose(); } catch (e) { /* 忽略旧实例销毁异常 */ }
+							window.pageAgent = null;
+						}
+						window.pageAgent = new window.PageAgent({
+							model: LLM.cfg.model,
+							baseURL: LLM.cfg.baseURL || undefined,
+							apiKey: LLM.cfg.apiKey || undefined,
+							language: LLM.cfg.language,
+							maxSteps: LLM.cfg.maxSteps
+						});
+						window.pageAgent.panel.show();
+						setStatus('已启动 ✓ 模型=' + LLM.cfg.model + '(PageAgent 面板已显示,可输入自然语言指令)');
+						$message.success('PageAgent 已启动');
+					} catch (e) {
+						setStatus('启动失败');
+						$modal.alert({ title: '启动失败', content: String((e && e.message) || e) });
+					}
+				};
+			});
+
+			// 停止并销毁 Agent
+			const stopBtn = $ui.button('停止/销毁', { className: 'danger' }, (btn) => {
+				btn.onclick = () => {
+					const a = getAgent();
+					if (a) {
+						try { a.stop(); } catch (e) { /* ignore */ }
+						a.dispose();
+						window.pageAgent = null;
+						setStatus('已停止');
+						$message.info('Agent 已停止');
+					} else {
+						setStatus('当前没有运行中的 Agent');
+					}
+				};
+			});
+
+			// 快捷指令执行(PageAgent 自带面板亦可直接输入)
+			const taskInput = h('input', {
+				className: 'base-style-input',
+				placeholder: '输入自然语言指令, 如: 点击页面上的登录按钮',
+				style: { width: '60%', marginRight: '8px' }
+			});
+			const runBtn = $ui.button('执行指令', {}, (btn) => {
+				btn.onclick = async () => {
+					const a = getAgent();
+					const text = taskInput.value.trim();
+					if (!a) { $modal.alert({ title: '提示', content: '请先点击「启动 Agent」' }); return; }
+					if (!text) { $message.warn('请输入指令'); return; }
+					try {
+						setStatus('执行中: ' + text);
+						await a.execute(text);
+						setStatus('执行完成 ✓');
+					} catch (e) {
+						setStatus('执行出错: ' + ((e && e.message) || e));
+						$message.error(String((e && e.message) || e));
+					}
+				};
+			});
+
+			panel.body.append($ui.space([startBtn, stopBtn], { x: 8, y: 4 }));
+			panel.body.append($ui.space([taskInput, runBtn], { x: 4, y: 6 }));
+			panel.body.append(status);
+		}
+	});
+
+	// ---------------------------------------------------------------
 	// 「控件大全」: 点击后在弹窗中展示模板提供的所有可用控件
 	// 使用 $modal.simple(纯内容弹窗,无底部按钮)+ h() 构建内容
 	// 弹窗挂载在悬浮窗内部,OCS 的全部样式类(base-style-*)可直接使用
@@ -192,7 +320,7 @@
 	// ---------------------------------------------------------------
 	start({
 		title: '示例脚本', // 窗口标题(可显示版本号等)
-		scripts: [Main, About] // 悬浮窗中会出现两个面板页,可通过标题栏下拉切换
+		scripts: [Main, About, LLM] // 悬浮窗中会出现多个面板页,可通过标题栏下拉或菜单栏切换
 	});
 
 	// 注册标题栏下方的「菜单栏」按钮(OCS 同款: 点击即可切换对应面板)
@@ -204,6 +332,7 @@
 				clearInterval(timer);
 				$menu('主面板', { scriptPanelLink: Main });
 				$menu('关于', { scriptPanelLink: About });
+				$menu('LLM', { scriptPanelLink: LLM });
 			}
 		}, 50);
 		setTimeout(() => clearInterval(timer), 5000);

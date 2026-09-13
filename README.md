@@ -154,12 +154,13 @@ h('tag', attrs, handler) // 通用元素工厂(支持自定义元素 tag)
 5. **多脚本共享配置时请给不同 `namespace`**,否则配置键相互覆盖。
 6. 配置存储基于 GM API;`@grant` 缺失时降级为内存存储(仅当前会话、且 `MemoryStoreProvider` 为进程内共享)。
 7. **`$menu()` 必须在悬浮窗就绪后调用**:`start()` 的 Promise 不会等待悬浮窗挂载(挂载发生在 `readystatechange` 之后),此时调用会静默失败。请轮询 `OCSUITpl.$elements.currentScriptPanel` 确认就绪后再注册菜单栏按钮(参考 `example.user.js`)。
+8. **LLM 界面集成的是 [Page Agent](https://github.com/alibaba/page-agent)**(纯 JS GUI Agent,无言后端/插件),通过 CDN 动态加载并默认不自动创建:**只有点击 LLM 面板里的「启动 Agent」才会加载 `https://cdn.jsdelivr.net/npm/page-agent@1.12.4/dist/iife/page-agent.demo.js?autoInit=false`(带 `autoInit=false` 只引库、不自动建 Demo Agent,再 `new window.PageAgent({ model, baseURL, apiKey, language, maxSteps })` 并 `panel.show()`)**。需要可用的 LLM API Key;执行自然语言指令用 `agent.execute()`。(备用 CDN 镜像见 example 注释)
 
 ## 许可
 
 - 模板内联的 [easy-us](https://github.com/enncy/easy-us) 框架:MIT © enncy
 - 样式裁剪自 OCS 网课助手(`ocsjs/ocsjs`,MIT)
-- 本仓库封装代码:MIT
+- 示例中的 [Page Agent](https://github.com/alibaba/page-agent) 集成:MIT © Alibaba(按需 CDN 加载,基于 browser-use)
 
 ## 发布指引
 

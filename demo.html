@@ -80,6 +80,114 @@
         }
       });
 
+      // ---------------------------------------------------------------
+      // LLM 界面: 通过 CDN 集成 Page Agent(GUI Agent),点击才启动
+      // 参考: https://github.com/alibaba/page-agent
+      // ?autoInit=false: 只加载库,不自动创建 Demo Agent
+      // ---------------------------------------------------------------
+      var PAGE_AGENT_CDN = 'https://cdn.jsdelivr.net/npm/page-agent@1.12.4/dist/iife/page-agent.demo.js?autoInit=false';
+      var pageAgentLibPromise = null;
+
+      function loadPageAgentLib() {
+        if (window.PageAgent) return Promise.resolve(window.PageAgent);
+        if (pageAgentLibPromise) return pageAgentLibPromise;
+        pageAgentLibPromise = new Promise(function (resolve, reject) {
+          var script = document.createElement('script');
+          script.src = PAGE_AGENT_CDN;
+          script.crossOrigin = 'anonymous';
+          script.onload = function () {
+            if (window.PageAgent) resolve(window.PageAgent);
+            else { pageAgentLibPromise = null; reject(new Error('page-agent 加载完成但未找到 window.PageAgent')); }
+          };
+          script.onerror = function () {
+            pageAgentLibPromise = null;
+            reject(new Error('page-agent CDN 加载失败,请检查网络'));
+          };
+          document.head.appendChild(script);
+        });
+        return pageAgentLibPromise;
+      }
+
+      var LLM = createScript({
+        name: 'LLM 界面',
+        notes: [
+          'Page Agent: 纯 JS 的 GUI Agent,用自然语言操作当前页面。',
+          ['默认不自动创建 Demo Agent: 点击下方「启动 Agent」才加载 CDN 并初始化。', '需要可用的 LLM API(模型 / 接口地址 / Key)。']
+        ],
+        configs: {
+          model: { label: '模型', defaultValue: 'qwen3.5-plus', attrs: { placeholder: '如 qwen3.5-plus / gpt-4o' } },
+          baseURL: { label: 'API 地址', defaultValue: 'https://dashscope.aliyuncs.com/compatible-mode/v1', attrs: { placeholder: 'OpenAI 兼容接口' } },
+          apiKey: { label: 'API Key', defaultValue: '', attrs: { type: 'password', placeholder: '填写你的 Key' } },
+          language: { label: '语言', defaultValue: 'zh-CN', tag: 'select', options: [['中文', 'zh-CN'], ['English', 'en']] },
+          maxSteps: { label: '最大步数', defaultValue: 40, attrs: { type: 'number', min: 1, max: 200 } }
+        },
+        onrender({ panel }) {
+          var status = h('p', { className: 'secondary' }, '状态: 未启动(点击「启动 Agent」才会创建,不会自动初始化 Demo Agent)');
+          function setStatus(t) { status.textContent = '状态: ' + t; }
+          function getAgent() { return (window.pageAgent && !window.pageAgent.disposed) ? window.pageAgent : null; }
+
+          var startBtn = $ui.button('启动 Agent', {}, function (btn) {
+            btn.onclick = async function () {
+              try {
+                setStatus('正在加载 page-agent CDN...');
+                await loadPageAgentLib();
+                if (window.pageAgent) { try { window.pageAgent.dispose(); } catch (e) {} window.pageAgent = null; }
+                window.pageAgent = new window.PageAgent({
+                  model: LLM.cfg.model,
+                  baseURL: LLM.cfg.baseURL || undefined,
+                  apiKey: LLM.cfg.apiKey || undefined,
+                  language: LLM.cfg.language,
+                  maxSteps: LLM.cfg.maxSteps
+                });
+                window.pageAgent.panel.show();
+                setStatus('已启动 ✓ 模型=' + LLM.cfg.model + '(PageAgent 面板已显示,可输入自然语言指令)');
+                $message.success('PageAgent 已启动');
+              } catch (e) {
+                setStatus('启动失败');
+                $modal.alert({ title: '启动失败', content: String((e && e.message) || e) });
+              }
+            };
+          });
+
+          var stopBtn = $ui.button('停止/销毁', { className: 'danger' }, function (btn) {
+            btn.onclick = function () {
+              var a = getAgent();
+              if (a) {
+                try { a.stop(); } catch (e) {}
+                a.dispose();
+                window.pageAgent = null;
+                setStatus('已停止');
+                $message.info('Agent 已停止');
+              } else {
+                setStatus('当前没有运行中的 Agent');
+              }
+            };
+          });
+
+          var taskInput = h('input', { className: 'base-style-input', placeholder: '输入自然语言指令, 如: 点击页面上的登录按钮', style: { width: '60%', marginRight: '8px' } });
+          var runBtn = $ui.button('执行指令', {}, function (btn) {
+            btn.onclick = async function () {
+              var a = getAgent();
+              var text = taskInput.value.trim();
+              if (!a) { $modal.alert({ title: '提示', content: '请先点击「启动 Agent」' }); return; }
+              if (!text) { $message.warn('请输入指令'); return; }
+              try {
+                setStatus('执行中: ' + text);
+                await a.execute(text);
+                setStatus('执行完成 ✓');
+              } catch (e) {
+                setStatus('执行出错: ' + ((e && e.message) || e));
+                $message.error(String((e && e.message) || e));
+              }
+            };
+          });
+
+          panel.body.append($ui.space([startBtn, stopBtn], { x: 8, y: 4 }));
+          panel.body.append($ui.space([taskInput, runBtn], { x: 4, y: 6 }));
+          panel.body.append(status);
+        }
+      });
+
       function controlGallery() {
         var content = h('div', { style: { width: '430px' } }, function (root) {
           function section(title) { root.append(h('div', { className: 'separator' }, title)); }
@@ -148,7 +256,7 @@
         $modal.simple({ title: '所有可用控件', content: content, width: 470 });
       }
 
-      start({ title: '示例脚本', scripts: [Main, About] });
+      start({ title: '示例脚本', scripts: [Main, About, LLM] });
 
       // 注册标题栏下方的「菜单栏」按钮(OCS 同款: 点击即可切换对应面板)
       // 注意: 悬浮窗在 readystatechange 后才会挂载($win 就绪),start() 的 Promise 并不会等待它,
@@ -159,6 +267,7 @@
             clearInterval(timer);
             $menu('主面板', { scriptPanelLink: Main });
             $menu('关于', { scriptPanelLink: About });
+            $menu('LLM', { scriptPanelLink: LLM });
           }
         }, 50);
         setTimeout(function () { clearInterval(timer); }, 5000);
