@@ -17,7 +17,7 @@
   <script>
     (function () {
       'use strict';
-      const { createScript, start, $ui, $modal, $message, $menu, h } = window.OCSUITpl;
+      const { createScript, createProject, start, $ui, $modal, $message, $menu, h } = window.OCSUITpl;
 
       const Main = createScript({
         name: '主面板',
@@ -69,16 +69,7 @@
         }
       });
 
-      const About = createScript({
-        name: '关于',
-        notes: ['本示例脚本演示 OCSUITpl 模板的常用能力。'],
-        onrender({ panel }) {
-          panel.body.append(
-            h('p', 'OCS-UI-TPL 提取自 OCS 网课助手的悬浮窗 UI 框架'),
-            h('p', { className: 'secondary' }, '底层框架: easy-us, MIT, github.com/enncy/easy-us')
-          );
-        }
-      });
+      // (已移除「关于」面板, 后台分类新增「更新模块」替代)
 
       // ---------------------------------------------------------------
       // LLM 界面: 通过 CDN 集成 Page Agent(GUI Agent),点击才启动
@@ -213,6 +204,40 @@
         }
       });
 
+      // ---------------------------------------------------------------
+      // 更新模块(后台分类): 显示当前脚本版本与更新入口
+      // 参考 OCS 的「📥 更新模块」; 更新链接使用 GitHub 仓库/Releases, 不使用 jsDelivr
+      // ---------------------------------------------------------------
+      var UPDATE_PAGE = 'https://github.com/Run-os/userscript-tpl/releases';
+      var SCRIPT_VERSION = '1.5.0';
+
+      var Update = createScript({
+        name: '📥 更新模块',
+        notes: ['脚本更新模块, 点击「检查更新」前往 GitHub Releases 查看最新版本。'],
+        configs: {
+          autoNotify: {
+            label: '开启更新通知',
+            defaultValue: true,
+            attrs: { type: 'checkbox', title: '有新版本时自动弹窗提示' }
+          }
+        },
+        onrender: function (elements) {
+          var infos = (typeof GM_info !== 'undefined') ? GM_info : null;
+          var currentVersion = (infos && infos.script && infos.script.version) ? infos.script.version : SCRIPT_VERSION;
+          var checkBtn = $ui.button('检查更新', {}, function (btn) {
+            btn.onclick = function () { window.open(UPDATE_PAGE, '_blank'); };
+          });
+          var card = h('div', { className: 'card' }, [
+            h('hr'),
+            h('div', ['当前脚本版本: ', h('b', currentVersion)]),
+            h('div', ['更新入口: ', h('a', { target: '_blank', href: UPDATE_PAGE }, UPDATE_PAGE)]),
+            h('hr')
+          ]);
+          elements.panel.body.append(card);
+          elements.panel.body.append($ui.space([checkBtn], { x: 8, y: 4 }));
+        }
+      });
+
       function controlGallery() {
         var content = h('div', { style: { width: '430px' } }, function (root) {
           function section(title) { root.append(h('div', { className: 'separator' }, title)); }
@@ -281,7 +306,14 @@
         $modal.simple({ title: '所有可用控件', content: content, width: 470 });
       }
 
-      start({ title: '示例脚本', scripts: [Main, About, LLM] });
+      start({
+        title: '示例脚本',
+        projects: [
+          createProject('通用', [Main, LLM]),
+          createProject('后台', [Update])
+        ],
+        defaultPanelName: Main.namespace || '主面板'
+      });
 
       // 注册标题栏下方的「菜单栏」按钮(OCS 同款: 点击即可切换对应面板)
       // 注意: 悬浮窗在 readystatechange 后才会挂载($win 就绪),start() 的 Promise 并不会等待它,
@@ -290,9 +322,9 @@
         var timer = setInterval(function () {
           if (window.OCSUITpl.$elements.currentScriptPanel) {
             clearInterval(timer);
-            $menu('主面板', { scriptPanelLink: Main });
-            $menu('关于', { scriptPanelLink: About });
-            $menu('LLM', { scriptPanelLink: LLM });
+            $menu('🏠 主面板', { scriptPanelLink: Main });
+            $menu('🤖 LLM', { scriptPanelLink: LLM });
+            $menu('📥 更新', { scriptPanelLink: Update });
           }
         }, 50);
         setTimeout(function () { clearInterval(timer); }, 5000);

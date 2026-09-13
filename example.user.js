@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OCS-UI-TPL 示例脚本
 // @namespace    https://github.com/Run-os/userscript-tpl
-// @version      1.4.4
+// @version      1.5.0
 // @description  演示 OCSUITpl 模板用法:悬浮窗 + 配置面板 + 消息 + 弹窗 + 下拉菜单。测试地址: https://example.com/?userscript-tpl
 // @author       Run-os
 // @license      MIT
@@ -33,7 +33,7 @@
 (function () {
 	'use strict';
 
-	const { createScript, start, $ui, $modal, $message, $menu, h } = window.OCSUITpl;
+	const { createScript, createProject, start, $ui, $modal, $message, $menu, h } = window.OCSUITpl;
 
 	// ---------------------------------------------------------------
 	// 面板 1 「主面板」: 演示 notes + configs + onrender 自定义内容
@@ -100,19 +100,8 @@
 	});
 
 	// ---------------------------------------------------------------
-	// 面板 2 「关于」: 最小面板, 演示纯 body 自定义
 	// ---------------------------------------------------------------
-	const About = createScript({
-		name: '关于',
-		notes: ['本示例脚本演示 OCSUITpl 模板的全部常用能力。'],
-		onrender({ panel }) {
-			panel.body.append(
-				h('p', 'OCS-UI-TPL 提取自 OCS 网课助手的悬浮窗 UI 框架'),
-				h('p', { className: 'secondary' }, '底层框架: easy-us, MIT, github.com/enncy/easy-us')
-			);
-		}
-	});
-
+	// (已移除「关于」面板, 后台分类新增「更新模块」替代)
 	// ---------------------------------------------------------------
 	// LLM 界面: 通过 CDN 集成 Page Agent(GUI Agent),点击才启动
 	// 参考: https://github.com/alibaba/page-agent
@@ -280,6 +269,41 @@
 	});
 
 	// ---------------------------------------------------------------
+	// 更新模块(后台分类): 显示当前脚本版本与更新入口
+	// 参考 OCS 的「📥 更新模块」; 更新链接使用 GitHub 仓库/Releases, 不使用 jsDelivr
+	// ---------------------------------------------------------------
+	const UPDATE_PAGE = 'https://github.com/Run-os/userscript-tpl/releases'; // 更新入口(GitHub Releases)
+	const SCRIPT_VERSION = '1.5.0'; // 当前脚本版本(与头部 @version 保持一致)
+
+	const Update = createScript({
+		name: '📥 更新模块',
+		notes: ['脚本更新模块, 点击「检查更新」前往 GitHub Releases 查看最新版本。'],
+		configs: {
+			autoNotify: {
+				label: '开启更新通知',
+				defaultValue: true,
+				attrs: { type: 'checkbox', title: '有新版本时自动弹窗提示' }
+			}
+		},
+		onrender({ panel }) {
+			const infos = typeof GM_info !== 'undefined' ? GM_info : null; // 油猴环境获取脚本信息
+			const currentVersion = (infos && infos.script && infos.script.version) ? infos.script.version : SCRIPT_VERSION;
+
+			const checkBtn = $ui.button('检查更新', {}, (btn) => {
+				btn.onclick = () => { window.open(UPDATE_PAGE, '_blank'); };
+			});
+			const card = h('div', { className: 'card' }, [
+				h('hr'),
+				h('div', ['当前脚本版本: ', h('b', currentVersion)]),
+				h('div', ['更新入口: ', h('a', { target: '_blank', href: UPDATE_PAGE }, UPDATE_PAGE)]),
+				h('hr')
+			]);
+			panel.body.append(card);
+			panel.body.append($ui.space([checkBtn], { x: 8, y: 4 }));
+		}
+	});
+
+	// ---------------------------------------------------------------
 	// 「控件大全」: 点击后在弹窗中展示模板提供的所有可用控件
 	// 使用 $modal.simple(纯内容弹窗,无底部按钮)+ h() 构建内容
 	// 弹窗挂载在悬浮窗内部,OCS 的全部样式类(base-style-*)可直接使用
@@ -354,11 +378,15 @@
 	}
 
 	// ---------------------------------------------------------------
-	// 启动悬浮窗
+	// 启动悬浮窗(菜单按项目分类: 通用 / 后台, 参考 OCS 的项目分组)
 	// ---------------------------------------------------------------
 	start({
 		title: '示例脚本', // 窗口标题(可显示版本号等)
-		scripts: [Main, About, LLM] // 悬浮窗中会出现多个面板页,可通过标题栏下拉或菜单栏切换
+		projects: [
+			createProject('通用', [Main, LLM]),
+			createProject('后台', [Update])
+		],
+		defaultPanelName: Main.namespace || '主面板' // 默认显示「主面板」
 	});
 
 	// 注册标题栏下方的「菜单栏」按钮(OCS 同款: 点击即可切换对应面板)
@@ -368,9 +396,9 @@
 		const timer = setInterval(() => {
 			if (window.OCSUITpl.$elements.currentScriptPanel) {
 				clearInterval(timer);
-				$menu('主面板', { scriptPanelLink: Main });
-				$menu('关于', { scriptPanelLink: About });
-				$menu('LLM', { scriptPanelLink: LLM });
+				$menu('🏠 主面板', { scriptPanelLink: Main });
+				$menu('🤖 LLM', { scriptPanelLink: LLM });
+				$menu('📥 更新', { scriptPanelLink: Update });
 			}
 		}, 50);
 		setTimeout(() => clearInterval(timer), 5000);

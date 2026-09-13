@@ -41,7 +41,7 @@
 
 > 模板链接:jsDelivr `https://cdn.jsdelivr.net/gh/Run-os/userscript-tpl@main/ocs-ui-tpl.user.js`(加速分发,优先推荐);GitHub raw `https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js` 亦可。
 > 模板使用 easy-us 的 GM 存储(GMStoreProvider)持久化配置;若你的脚本没有 `@grant` 上面的 GM API,模板会自动降级为内存存储(刷新页面配置不保留)。
-> 示例脚本 `example.user.js` 已配置为仅在 `https://example.com/?userscript-tpl` 运行,安装后浏览器打开该地址即可看到效果;主面板的「控件大全」按钮会弹窗展示模板提供的所有可用控件(按钮/开关/输入/下拉/文本域/消息/嵌套弹窗/dropdown/复制/防误触/富文本列表)。
+> 示例脚本 `example.user.js` 已配置为仅在 `https://example.com/?userscript-tpl` 运行,安装后浏览器打开该地址即可看到效果。悬浮窗菜单按 OCS 方式分为**「通用」(主面板、LLM 界面、窗口设置)与「后台」(📥 更新模块:显示当前脚本版本,更新入口指向 GitHub Releases,不使用 jsDelivr)** 两个项目分组;主面板的「控件大全」按钮会弹窗展示模板提供的所有可用控件(按钮/开关/输入/下拉/文本域/消息/嵌套弹窗/dropdown/复制/防误触/富文本列表)。
 
 ### 2. 定义面板并启动
 
