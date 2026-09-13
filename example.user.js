@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OCS-UI-TPL 示例脚本
 // @namespace    https://github.com/Run-os/userscript-tpl
-// @version      1.4.0
+// @version      1.4.1
 // @description  演示 OCSUITpl 模板用法:悬浮窗 + 配置面板 + 消息 + 弹窗 + 下拉菜单。测试地址: https://example.com/?userscript-tpl
 // @author       Run-os
 // @license      MIT
@@ -49,7 +49,7 @@
 		configs: {
 			enabled: { label: '启用功能', defaultValue: true }, // checkbox(开关)
 			speed: { label: '执行速度', defaultValue: 2, attrs: { type: 'number', min: 1, max: 10, step: 1 } }, // 数字框
-			mode: { label: '模式', defaultValue: 'auto', tag: 'select', options: [['自动', 'auto'], ['手动', 'manual']] }, // 下拉框
+			mode: { label: '模式', defaultValue: 'auto', tag: 'select', options: [['auto', '自动'], ['manual', '手动']] }, // 下拉框
 			remark: { label: '备注', defaultValue: '', tag: 'textarea', attrs: { rows: 2, placeholder: '选填' } } // 文本域
 		},
 		// 渲染面板 body(自定义内容区域), panel = script-panel-element
@@ -118,32 +118,36 @@
 	// 参考: https://github.com/alibaba/page-agent
 	//  - ?autoInit=false: 只加载库,不自动创建 Demo Agent
 	//  - 从「LLM 界面」点击「启动 Agent」才 new PageAgent + 显示其面板
+	//  - CDN 可在面板下拉中选择(默认 npmmirror 镜像)
 	// ---------------------------------------------------------------
-	const PAGE_AGENT_CDN =
-		'https://cdn.jsdelivr.net/npm/page-agent@1.12.4/dist/iife/page-agent.demo.js?autoInit=false';
-	// 备用镜像(官方 README 提供):
-	// https://registry.npmmirror.com/page-agent/1.12.4/files/dist/iife/page-agent.demo.js?autoInit=false
+	const PAGE_AGENT_CDNS = {
+		npmmirror: 'https://registry.npmmirror.com/page-agent/1.12.4/files/dist/iife/page-agent.demo.js?autoInit=false',
+		jsdelivr: 'https://cdn.jsdelivr.net/npm/page-agent@1.12.4/dist/iife/page-agent.demo.js?autoInit=false'
+	};
 
 	let pageAgentLibPromise = null; // PageAgent CDN 加载 Promise(幂等单例)
+	let pageAgentLoadedCdn = null; // 已加载的 CDN 标识
 
-	/** 动态加载 PageAgent 库,返回 window.PageAgent 类 */
-	function loadPageAgentLib() {
-		if (window.PageAgent) return Promise.resolve(window.PageAgent);
+	/** 按选中 CDN 动态加载 PageAgent 库,返回 window.PageAgent 类 */
+	function loadPageAgentLib(cdnKey) {
+		const url = PAGE_AGENT_CDNS[cdnKey] || PAGE_AGENT_CDNS.npmmirror;
+		// 同一 CDN 已加载过,直接复用
+		if (window.PageAgent && pageAgentLoadedCdn === cdnKey) return Promise.resolve(window.PageAgent);
+		// 进行中的同一次加载
 		if (pageAgentLibPromise) return pageAgentLibPromise;
 		pageAgentLibPromise = new Promise((resolve, reject) => {
 			const script = document.createElement('script');
-			script.src = PAGE_AGENT_CDN;
+			script.src = url;
 			script.crossOrigin = 'anonymous';
 			script.onload = () => {
+				pageAgentLibPromise = null;
+				pageAgentLoadedCdn = cdnKey;
 				if (window.PageAgent) resolve(window.PageAgent);
-				else {
-					pageAgentLibPromise = null;
-					reject(new Error('page-agent 加载完成但未找到 window.PageAgent'));
-				}
+				else reject(new Error('page-agent 加载完成但未找到 window.PageAgent'));
 			};
 			script.onerror = () => {
 				pageAgentLibPromise = null;
-				reject(new Error('page-agent CDN 加载失败,请检查网络'));
+				reject(new Error('page-agent CDN 加载失败: ' + url));
 			};
 			document.head.appendChild(script);
 		});
@@ -155,12 +159,21 @@
 		name: 'LLM 界面',
 		notes: [
 			'Page Agent: 纯 JS 的 GUI Agent,用自然语言操作当前页面。',
-			['默认不自动创建 Demo Agent: 点击下方「启动 Agent」才加载 CDN 并初始化。', '需要可用的 LLM API(模型 / 接口地址 / Key)。']
+			['默认不自动创建 Demo Agent: 点击下方「启动 Agent」才加载 CDN 并初始化。', '必须填写有效 API Key,否则执行指令会报 Authentication failed。']
 		],
 		configs: {
+			cdn: {
+				label: 'PageAgent CDN',
+				defaultValue: 'npmmirror',
+				tag: 'select',
+				options: [
+					['npmmirror', 'npmmirror (默认)'],
+					['jsdelivr', 'jsDelivr']
+				]
+			},
 			model: { label: '模型', defaultValue: 'qwen3.5-plus', attrs: { placeholder: '如 qwen3.5-plus / gpt-4o' } },
 			baseURL: { label: 'API 地址', defaultValue: 'https://dashscope.aliyuncs.com/compatible-mode/v1', attrs: { placeholder: 'OpenAI 兼容接口' } },
-			apiKey: { label: 'API Key', defaultValue: '', attrs: { type: 'password', placeholder: '填写你的 Key' } },
+			apiKey: { label: 'API Key', defaultValue: '', attrs: { type: 'password', placeholder: '必填, 执行指令时需要' } },
 			language: { label: '语言', defaultValue: 'zh-CN', tag: 'select', options: [['中文', 'zh-CN'], ['English', 'en']] },
 			maxSteps: { label: '最大步数', defaultValue: 40, attrs: { type: 'number', min: 1, max: 200 } }
 		},
@@ -169,12 +182,13 @@
 			const setStatus = (text) => { status.textContent = '状态: ' + text; };
 			const getAgent = () => (window.pageAgent && !window.pageAgent.disposed ? window.pageAgent : null);
 
-			// 启动 Agent: 按当前配置创建 PageAgent 实例并显示其面板
+			// 启动 Agent: 按当前配置(含所选 CDN)创建 PageAgent 实例并显示其面板
 			const startBtn = $ui.button('启动 Agent', {}, (btn) => {
 				btn.onclick = async () => {
 					try {
-						setStatus('正在加载 page-agent CDN...');
-						await loadPageAgentLib();
+						const cdnKey = LLM.cfg.cdn || 'npmmirror';
+						setStatus('正在加载 page-agent CDN(' + cdnKey + ')...');
+						await loadPageAgentLib(cdnKey);
 						if (window.pageAgent) {
 							try { window.pageAgent.dispose(); } catch (e) { /* 忽略旧实例销毁异常 */ }
 							window.pageAgent = null;
@@ -187,8 +201,13 @@
 							maxSteps: LLM.cfg.maxSteps
 						});
 						window.pageAgent.panel.show();
-						setStatus('已启动 ✓ 模型=' + LLM.cfg.model + '(PageAgent 面板已显示,可输入自然语言指令)');
-						$message.success('PageAgent 已启动');
+						if (LLM.cfg.apiKey) {
+							setStatus('已启动 ✓ CDN=' + cdnKey + ' 模型=' + LLM.cfg.model + '(PageAgent 面板已显示,可输入自然语言指令)');
+							$message.success('PageAgent 已启动');
+						} else {
+							setStatus('已启动, 但未填写 API Key — 执行指令会报 Authentication failed');
+							$message.warn('未填写 API Key, 请先在「API Key」输入你的密钥');
+						}
 					} catch (e) {
 						setStatus('启动失败');
 						$modal.alert({ title: '启动失败', content: String((e && e.message) || e) });
