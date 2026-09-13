@@ -7,7 +7,7 @@
 // @license      MIT
 // @match        https://example.com/*
 // @include      https://example.com/?userscript-tpl
-// @require      https://cdn.jsdelivr.net/gh/Run-os/userscript-tpl@main/ocs-ui-tpl.user.js
+// @require      https://cdn.jsdelivr.net/gh/Run-os/userscript-tpl@1b2444d/ocs-ui-tpl.user.js // 固定 commit, 规避 jsDelivr @main 缓存滞后
 // @grant        unsafeWindow
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -25,7 +25,7 @@
 /**
  * OCS-UI-TPL 示例脚本
  *  - 通过 @require 引入模板(模板挂载的全局对象: window.OCSUITpl / window.EUS)
- *  - 模板链接走 jsDelivr CDN 加速: https://cdn.jsdelivr.net/gh/Run-os/userscript-tpl@main/ocs-ui-tpl.user.js
+ *  - 模板链接走 jsDelivr CDN(固定 commit 避免 @main 缓存滞后): https://cdn.jsdelivr.net/gh/Run-os/userscript-tpl@1b2444d/ocs-ui-tpl.user.js
  *  - 测试地址: 浏览器打开 https://example.com/?userscript-tpl(脚本仅在此站点运行)
  *  - 面板内: separator(脚本名) + notes(提示块,可多行) + configs(配置表单,自动持久化) + body(自定义内容)
  *  - 全局: $message / $modal / $menu / $ui.* 可供任意位置调用

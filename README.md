@@ -170,4 +170,4 @@ h('tag', attrs, handler) // 通用元素工厂(支持自定义元素 tag)
 2. 示例脚本 `example.user.js` 已就绪:安装后在浏览器打开 <https://example.com/?userscript-tpl> 即可看到悬浮窗效果。
 3. 本地预览:在仓库目录运行 `python3 -m http.server 8931`,浏览器打开 <http://127.0.0.1:8931/demo.html>。
 
-> 注意:如需更新模板,推送后 jsDelivr 缓存约 12 小时自动刷新;紧急刷新可在 URL 追加 `?raw` 或使用 `@<commit-sha>` 固定版本。
+> 注意:jsDelivr 对 `@main` 分支的缓存可能严重滞后(实测会长期停留在旧版本)。**请使用固定 commit 的模板链接**:`https://cdn.jsdelivr.net/gh/Run-os/userscript-tpl@1b2444d/ocs-ui-tpl.user.js`(当前提交,含 LXGW Bright 字体)。每次模板更新后,请把 `example.user.js` 的 `@require` 同步为最新 commit(或使用 GitHub raw 链接 `https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js`)。
