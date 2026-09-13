@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OCS-UI-TPL 油猴脚本 UI 模板
 // @namespace    https://github.com/ocsjs/easy-us
-// @version      1.0.0
+// @version      1.1.0
 // @description  OCS 网课助手同款悬浮窗 UI 模板(基于 easy-us + OCS 通用样式)。可被其他油猴脚本通过 @require 引用,快速搭建 悬浮窗/配置面板/消息/弹窗 UI。详情见 README。
 // @author       enncy (easy-us) + tpl
 // @license      MIT
@@ -3669,6 +3669,17 @@ function start(options) {
 
   const renderScript = EUS.createRenderScript({ name: '窗口设置' });
 
+  // 与 OCS 原脚本一致: 把「窗口设置」面板挂入第一个项目的 scripts,
+  // 使其出现在悬浮窗面板切换列表中(内含: 字体大小/窗口连点/隐藏窗口)。
+  // 字号修改实时生效: easy-us 的 mount 已注册 fontsize 变化监听 → win.setFontSize。
+  if (projectList.length && projectList[0] && projectList[0].scripts) {
+    if (projectList[0].scripts.render) {
+      console.warn('[OCS-UI-TPL] 面板名冲突: 项目已有名为 render 的脚本, 窗口设置面板已跳过');
+    } else {
+      projectList[0].scripts.render = renderScript;
+    }
+  }
+
   return EUS.start({
     projects: projectList,
     mountElement: options.mountElement,
@@ -3682,7 +3693,7 @@ function start(options) {
 }
 
 const OCSUITpl = {
-  VERSION: '1.0.0',
+  VERSION: '1.1.0',
   EUS: EUS,
   Script: EUS.Script,
   Project: EUS.Project,
