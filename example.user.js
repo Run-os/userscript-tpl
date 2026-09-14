@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OCS-UI-TPL 示例脚本
 // @namespace    https://github.com/Run-os/userscript-tpl
-// @version      1.5.1
+// @version      1.5.2
 // @description  演示 OCSUITpl 模板用法:悬浮窗 + 配置面板 + 消息 + 弹窗 + 下拉菜单。测试地址: https://example.com/?userscript-tpl
 // @author       Run-os
 // @license      MIT
@@ -282,21 +282,13 @@
 	// 参考 OCS 的「📥 更新模块」; 更新链接使用 GitHub 仓库/Releases, 不使用 jsDelivr
 	// ---------------------------------------------------------------
 	const UPDATE_PAGE = 'https://github.com/Run-os/userscript-tpl/releases'; // 更新入口(GitHub Releases)
-	const SCRIPT_VERSION = '1.5.0'; // 当前脚本版本(与头部 @version 保持一致)
 
 	const Update = createScript({
 		name: '📥 更新模块',
 		notes: ['脚本更新模块, 点击「检查更新」前往 GitHub Releases 查看最新版本。'],
-		configs: {
-			autoNotify: {
-				label: '开启更新通知',
-				defaultValue: true,
-				attrs: { type: 'checkbox', title: '有新版本时自动弹窗提示' }
-			}
-		},
 		onrender({ panel }) {
 			const infos = typeof GM_info !== 'undefined' ? GM_info : null; // 油猴环境获取脚本信息
-			const currentVersion = (infos && infos.script && infos.script.version) ? infos.script.version : SCRIPT_VERSION;
+			const currentVersion = (infos && infos.script && infos.script.version) ? infos.script.version : '未知';
 
 			const checkBtn = $ui.button('检查更新', {}, (btn) => {
 				btn.onclick = () => { window.open(UPDATE_PAGE, '_blank'); };
