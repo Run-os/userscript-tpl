@@ -12,7 +12,6 @@
 | --- | --- |
 | `ocs-ui-tpl.user.js` | **模板本体**(UI 框架库,无业务功能)。内联 easy-us 全量 + OCS 通用样式 + `OCSUITpl` 便捷封装 API。可直接被 `@require` 引用 |
 | `example.user.js` | **示例脚本**:通过 `@require` 引用模板,演示面板/配置/消息/弹窗/下拉的完整用法 |
-| `demo.html` | 本地浏览器直载预览页(无油猴环境,配置走内存存储),`python3 -m http.server` 后打开即可看效果 |
 | `README.md` | 本文档 |
 
 ## 快速开始
@@ -168,6 +167,5 @@ h('tag', attrs, handler) // 通用元素工厂(支持自定义元素 tag)
 1. 模板已发布到 <https://github.com/Run-os/userscript-tpl>;`@require` 直接使用 jsDelivr 加速链接:
    `https://cdn.jsdelivr.net/gh/Run-os/userscript-tpl@1b2444d/ocs-ui-tpl.user.js`(固定 commit 版本)
 2. 示例脚本 `example.user.js` 已就绪:安装后在浏览器打开 <https://example.com/?userscript-tpl> 即可看到悬浮窗效果。
-3. 本地预览:在仓库目录运行 `python3 -m http.server 8931`,浏览器打开 <http://127.0.0.1:8931/demo.html>。
 
 > 注意:jsDelivr 对 `@main` 分支的缓存可能严重滞后(实测会长期停留在旧版本)。**请使用固定 commit 的模板链接**:`https://cdn.jsdelivr.net/gh/Run-os/userscript-tpl@1b2444d/ocs-ui-tpl.user.js`(当前提交,含 LXGW Bright 字体)。每次模板更新后,请把 `example.user.js` 的 `@require` 同步为最新 commit(或使用 GitHub raw 链接 `https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js`)。
