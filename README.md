@@ -190,9 +190,15 @@ h('tag', attrs, handler) // 通用元素工厂(支持自定义元素 tag)
 
 ## 发布指引
 
-1. 模板已发布到 <https://github.com/Run-os/userscript-tpl>;`@require` 直接使用 **GitHub raw** 链接(末尾带版本查询串,每次版本变化都会强制脚本管理器重新拉取,避免缓存旧模板):
-   `https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js?v=<模板版本>`(示例脚本里当前为 `https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js?v=1.2.2`)
+1. 模板已发布到 <https://github.com/Run-os/userscript-tpl>;`@require` 直接使用 **GitHub raw** 链接:
+   `https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js`
 2. 示例脚本 `example.user.js` 已就绪:安装后在浏览器打开 <https://example.com/?userscript-tpl> 即可看到悬浮窗效果。
+3. **更新模板后如何让浏览器生效**:脚本管理器会把 `@require` 缓存起来(脚本猫作者确认「缓存是 feature」,见[论坛帖 4964](https://bbs.tampermonkey.net.cn/thread-4964-1-1.html)),模板更新后需要手动刷新一次:
+   1. 打开脚本管理器(脚本猫)的管理面板,找到「OCS-UI-TPL 示例脚本」;
+   2. 打开脚本详情 → 「**脚本资源**」→ 删除(或清空)那条 `ocs-ui-tpl.user.js`;
+   3. 刷新页面 —— 脚本会重新下载该资源,也就是最新模板;
+   4. 兜底方案:删除脚本 → 重新安装(同样会重新拉取 `@require`)。
+   > 本项目**故意不在 `@require` 上加 `?v=` 查询串**(维护麻烦);如果你更希望自动失效,可以自行在链接后追加 `?v=<模板版本>`。
 3. **协作/发布约定见 [`AGENTS.md`](AGENTS.md)**:每完成一项功能或修复,必须同步 README、递增版本号(模板 `@version` + `VERSION` 常量、示例 `@version`)、提交并推送到 `main`,并校验 raw 链接;提交前须核对 `git diff --numstat` 与 `git diff -w --numstat` 一致(无纯空白变更)。
 
 > 注意:模板统一使用 **GitHub raw** `https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js`,**不使用 CDN**。raw 直连仓库,**把改动推送到 `main` 分支后立即生效**(没有 jsDelivr 对 `@main`/固定 commit 的缓存滞后问题),因此模板更新后**无需**再同步 `example.user.js` 的 `@require`。
