@@ -23,7 +23,7 @@
 ```js
 // ==UserScript==
 // @name         我的脚本
-// @require      https://cdn.jsdelivr.net/gh/Run-os/userscript-tpl@1b2444d/ocs-ui-tpl.user.js
+// @require      https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js
 // @grant        unsafeWindow
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -38,9 +38,9 @@
 // ==/UserScript==
 ```
 
-> 模板链接:jsDelivr `https://cdn.jsdelivr.net/gh/Run-os/userscript-tpl@1b2444d/ocs-ui-tpl.user.js`(固定 commit,避免 `@main` 缓存滞后);GitHub raw `https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js` 亦可。
+> 模板链接:**GitHub raw** `https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js`(**不使用 CDN**;raw 直连仓库,推送到 `main` 后立即生效,没有 jsDelivr 对 `@main` 的缓存滞后)。
 > 模板使用 easy-us 的 GM 存储(GMStoreProvider)持久化配置;若你的脚本没有 `@grant` 上面的 GM API,模板会自动降级为内存存储(刷新页面配置不保留)。
-> 示例脚本 `example.user.js` 已配置为仅在 `https://example.com/?userscript-tpl` 运行,安装后浏览器打开该地址即可看到效果。悬浮窗菜单按 OCS 方式分为**「通用」(主面板、LLM 界面、窗口设置)与「后台」(📥 更新模块:显示当前脚本版本,更新入口指向 GitHub Releases,不使用 jsDelivr)** 两个项目分组;主面板的「控件大全」按钮会弹窗展示模板提供的所有可用控件(按钮/开关/输入/下拉/文本域/消息/嵌套弹窗/dropdown/复制/防误触/富文本列表)。
+> 示例脚本 `example.user.js` 已配置为仅在 `https://example.com/?userscript-tpl` 运行,安装后浏览器打开该地址即可看到效果。悬浮窗菜单按 OCS 方式分为**「通用」(主面板、LLM 界面、窗口设置)与「后台」(📥 更新模块:显示当前脚本版本,更新入口指向 GitHub Releases,不使用 jsDelivr)** 两个项目分组;主面板的「控件大全」按钮会弹窗展示模板提供的所有可用控件(按钮/开关/输入/下拉/文本域/消息/嵌套弹窗/dropdown/复制/防误触/富文本列表),其中弹窗区演示了模板支持的**两种关闭样式:「遮罩关闭」与「底部按钮关闭」**(后者与 OCS「题库配置」弹窗同款)。
 
 ### 2. 定义面板并启动
 
@@ -130,13 +130,22 @@
 ```js
 $ui.button(text, attrs, createHandler) // 创建按钮(返回 input[type=button])
 $ui.space(children, { x, y, separator }) // 横向排列一组元素
+//   ⚠️ .space 是 inline-flex(行内级), 连续两个 $ui.space 会排在同一行且基线错位;
+//      需要分行时请在两者之间插入 block 级元素(如 section()/h('div')/h('hr'))
+//   · 行内各项按垂直居中排布(align-items:center), 纯按钮行不受影响
+//   · .base-style-switch 是 display:flex(块级), 不能直接塞进 <label> 里和文字并排,
+//     否则文字会被挤到下一行;请用 <label style="display:inline-flex;align-items:center">
 $ui.notes(lines, 'ol'|'ul') // 生成列表元素
 $ui.copy(name, value) // 复制按钮
 $ui.preventText(opts) // 防误触按钮(延时执行)
 $ui.scriptPanel(...) / $ui.configs(...) // 底层面板构件
 
 $message.info('...') / $message.success / $message.warn / $message.error // 悬浮窗消息(顶部弹出)
-$modal.confirm({ title, content, onConfirm, onCancel }) / $modal.alert / $modal.prompt // 弹窗
+$modal.confirm / $modal.alert / $modal.prompt({ title, content, onConfirm, onCancel, placeholder }) // 弹窗(默认底部「取消/确定」)
+$modal.simple({ title, content, width }) // 纯内容弹窗(默认无底部按钮)
+$modal.* 通用参数: width(默认 400)、maskCloseable(默认 true;传 false 则点遮罩不关闭)、
+                   footer(自定义底部节点,传入后整体替换默认的「取消/确定」按钮)
+                   返回值 = 遮罩元素(.modal-wrapper);关闭:const m = $modal.simple({...});m.remove()
 $menu(label, { scriptPanelLink }) // 标题栏菜单
 h('tag', attrs, handler) // 通用元素工厂(支持自定义元素 tag)
 ```
@@ -155,6 +164,20 @@ h('tag', attrs, handler) // 通用元素工厂(支持自定义元素 tag)
 6. 配置存储基于 GM API;`@grant` 缺失时降级为内存存储(仅当前会话、且 `MemoryStoreProvider` 为进程内共享)。
 7. **`$menu()` 必须在悬浮窗就绪后调用**:`start()` 的 Promise 不会等待悬浮窗挂载(挂载发生在 `readystatechange` 之后),此时调用会静默失败。请轮询 `OCSUITpl.$elements.currentScriptPanel` 确认就绪后再注册菜单栏按钮(参考 `example.user.js`)。
 8. **LLM 界面集成的是 [Page Agent](https://github.com/alibaba/page-agent)**(纯 JS GUI Agent,无言后端/插件),通过 CDN 动态加载并默认不自动创建:**只有点击 LLM 面板里的「启动 Agent」才加载 CDN(带 `autoInit=false` 只引库、不自动建 Demo Agent,再 `new window.PageAgent(config)` 并 `panel.show()`)**。固定使用 **npmmirror 镜像** CDN(`https://registry.npmmirror.com/page-agent/1.12.4/files/dist/iife/page-agent.demo.js`,与 jsDelivr 为同一份 npm 包,均支持自定义 LLM 参数),语言固定中文(zh-CN)。LLM 面板的「**使用 Demo 免费测试 API**」开关勾选后自动隐藏模型/地址/Key 配置(`showIf` 联动),并套用内置免费测试服务(`qwen3.5-plus` + 阿里测试端点,**仅技术评估**);不勾选则填写自己的 API Key,否则执行指令会报 `Authentication failed`。改/填 Key 后须重新点「启动 Agent」。自然语言指令通过 `agent.execute()` 执行。
+9. **弹窗有两种关闭样式**(与 OCS 4.15.3 原脚本一致,示例见「控件大全 → 弹窗 modal」):
+   - **遮罩关闭**:`$modal.simple({ title, content })` **不传 `footer`** → 无底部按钮,点遮罩即关闭(OCS 的「脚本说明」弹窗即此写法)。
+   - **按钮关闭**:传 `footer` + `maskCloseable: false` → 点遮罩不关闭,只能点自定义 footer 里的按钮关闭。OCS 全局设置的「题库配置 → 点击进入配置」弹窗就是这种(`$modal.prompt` + 自定义 footer,内含「关闭」「保存配置」):
+     ```js
+     let m;
+     const footer = h('div', null, [h('button', '关闭', (btn) => {
+       btn.className = 'modal-cancel-button';   // 次要按钮;主要动作用 modal-confirm-button
+       btn.onclick = () => m && m.remove();
+     })]);
+     m = $modal.simple({ content: '...', footer, maskCloseable: false });
+     ```
+   - 传了 `footer` 后,默认的输入框/取消/确定按钮会被**整体替换**(`simple` 类型本来就无 footer)。
+   - ⚠️ **`alert` 类型会用 CSS 隐藏 `.modal-input` 与 `.modal-cancel-button`**:要在 footer 里放输入框或次要按钮,请用 `simple`/`prompt` 类型。
+   - **不支持 ESC 关闭**(原脚本也没有):遮罩关闭样式只能点遮罩退出。
 
 ## 许可
 
@@ -164,8 +187,9 @@ h('tag', attrs, handler) // 通用元素工厂(支持自定义元素 tag)
 
 ## 发布指引
 
-1. 模板已发布到 <https://github.com/Run-os/userscript-tpl>;`@require` 直接使用 jsDelivr 加速链接:
-   `https://cdn.jsdelivr.net/gh/Run-os/userscript-tpl@1b2444d/ocs-ui-tpl.user.js`(固定 commit 版本)
+1. 模板已发布到 <https://github.com/Run-os/userscript-tpl>;`@require` 直接使用 **GitHub raw** 链接:
+   `https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js`
 2. 示例脚本 `example.user.js` 已就绪:安装后在浏览器打开 <https://example.com/?userscript-tpl> 即可看到悬浮窗效果。
 
-> 注意:jsDelivr 对 `@main` 分支的缓存可能严重滞后(实测会长期停留在旧版本)。**请使用固定 commit 的模板链接**:`https://cdn.jsdelivr.net/gh/Run-os/userscript-tpl@1b2444d/ocs-ui-tpl.user.js`(当前提交,含 LXGW Bright 字体)。每次模板更新后,请把 `example.user.js` 的 `@require` 同步为最新 commit(或使用 GitHub raw 链接 `https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js`)。
+> 注意:模板统一使用 **GitHub raw** `https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js`,**不使用 CDN**。raw 直连仓库,**把改动推送到 `main` 分支后立即生效**(没有 jsDelivr 对 `@main`/固定 commit 的缓存滞后问题),因此模板更新后**无需**再同步 `example.user.js` 的 `@require`。
+> ⚠️ 前提:改动确实已推送到 `main`;只改工作区不推送的话,raw 链接拿到的仍是旧模板。

@@ -7,7 +7,7 @@
 // @license      MIT
 // @match        https://example.com/*
 // @include      https://example.com/?userscript-tpl
-// @require      https://cdn.jsdelivr.net/gh/Run-os/userscript-tpl@1b2444d/ocs-ui-tpl.user.js
+// @require      https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js
 // @grant        unsafeWindow
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -25,7 +25,7 @@
 /**
  * OCS-UI-TPL 示例脚本
  *  - 通过 @require 引入模板(模板挂载的全局对象: window.OCSUITpl / window.EUS)
- *  - 模板链接走 jsDelivr CDN(固定 commit 避免 @main 缓存滞后): https://cdn.jsdelivr.net/gh/Run-os/userscript-tpl@1b2444d/ocs-ui-tpl.user.js
+ *  - 模板链接走 GitHub raw(不使用 CDN:raw 直连仓库, main 推送后立即生效, 无缓存滞后): https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js
  *  - 测试地址: 浏览器打开 https://example.com/?userscript-tpl(脚本仅在此站点运行)
  *  - 面板内: separator(脚本名) + notes(提示块,可多行) + configs(配置表单,自动持久化) + body(自定义内容)
  *  - 全局: $message / $modal / $menu / $ui.* 可供任意位置调用
@@ -35,7 +35,7 @@
 
 	// 防御: @require 的模板(OCSUITpl)未加载成功时给出明确提示
 	if (!window.OCSUITpl) {
-		console.error('[OCS-UI-TPL 示例] 模板加载失败: window.OCSUITpl 为 undefined。请确认 @require 的 jsDelivr/GitHub 链接可访问, 并重新安装脚本。');
+		console.error('[OCS-UI-TPL 示例] 模板加载失败: window.OCSUITpl 为 undefined。请确认 @require 的 GitHub raw 链接可访问, 并重新安装脚本。');
 		if (typeof alert === 'function') {
 			alert('OCS-UI-TPL 示例: 模板未加载成功(window.OCSUITpl 不存在), 请检查 @require 链接可访问后重新安装脚本。');
 		}
@@ -327,10 +327,10 @@
 			const sw = h('input', { type: 'checkbox', className: 'base-style-switch' });
 			sw.checked = true;
 			root.append($ui.space([
-				h('label', { style: { lineHeight: '26px' } }, [sw, ' 开关']),
-				h('input', { type: 'number', className: 'base-style-input', value: '2', style: { width: '70px' } }),
-				h('input', { className: 'base-style-input', placeholder: '文本输入', style: { width: '120px' } }),
-				h('select', { className: 'base-style-input', style: { width: '110px' } }, (sel) => {
+				h('label', { style: { display: 'inline-flex', alignItems: 'center', lineHeight: '26px' } }, [sw, ' 开关']),
+				h('input', { type: 'number', className: 'base-style-input', value: '2', style: { width: '60px' } }),
+				h('input', { className: 'base-style-input', placeholder: '文本输入', style: { width: '90px' } }),
+				h('select', { className: 'base-style-input', style: { width: '90px' } }, (sel) => {
 					sel.append(h('option', { value: 'a' }, '选项 A'), h('option', { value: 'b' }, '选项 B'));
 				})
 			], { x: 8, y: 4 }));
@@ -353,6 +353,15 @@
 				$ui.button('prompt', {}, (b) => { b.onclick = () => $modal.prompt({ title: '输入弹窗', content: '请输入内容:', placeholder: '输入点什么', onConfirm: (v) => $message.info('输入了: ' + v) }); })
 			], { x: 8, y: 4 }));
 
+			// 4.1 弹窗的两种关闭样式(与 OCS 4.15.3 原脚本一致)
+			// 注意: $ui.space 是 inline-flex(.space{display:inline-flex}), 连续两个 space 会排在同一行,
+			// 必须用一个 block 级元素(如 separator)断开, 否则第二行按钮会并到第一行旁边且基线错位
+			section('弹窗关闭样式 maskCloseable / footer');
+			root.append($ui.space([
+				$ui.button('遮罩关闭弹窗', {}, (b) => { b.onclick = maskCloseModal; }),
+				$ui.button('按钮关闭弹窗', {}, (b) => { b.onclick = buttonCloseModal; })
+			], { x: 8, y: 4 }));
+
 			// 5. 其他: 下拉 / 复制 / 防误触
 			section('其他 dropdown / copy / preventText');
 			const dd = h('dropdown-element', { trigger: 'click' });
@@ -372,10 +381,79 @@
 				'<a href="https://github.com/Run-os/userscript-tpl" target="_blank">仓库链接</a>'
 			], 'ol'));
 
-			root.append(h('p', { className: 'secondary', style: { marginTop: '8px' } }, '提示:点击弹窗遮罩可关闭本弹窗'));
+			root.append(h('p', { className: 'secondary', style: { marginTop: '8px' } }, '提示:本弹窗为「按钮关闭」样式,请点底部「关闭」按钮;「遮罩关闭」样式见上方按钮演示。'));
 		});
-		// simple 类型: 纯内容弹窗,无底部按钮,点击遮罩关闭
-		$modal.simple({ title: '所有可用控件', content: content, width: 470 });
+		// 本弹窗演示「按钮关闭」样式(对照 OCS 全局设置「题库配置 → 点击进入配置」):
+		// 自定义 footer + maskCloseable:false → 点遮罩不关闭,只能点底部按钮关闭
+		let modal;
+		const closeBtn = h('button', '关闭', (btn) => {
+			btn.className = 'modal-cancel-button';
+			btn.onclick = () => modal == null ? void 0 : modal.remove();
+		});
+		modal = $modal.simple({
+			title: '所有可用控件',
+			content: content,
+			footer: closeBtn,
+			maskCloseable: false,
+			width: 470
+		});
+	}
+
+	// ---------------------------------------------------------------
+	// 弹窗的两种关闭样式(写法与 OCS 4.15.3 原脚本一致)
+	//  1) 遮罩关闭: $modal.simple 不传 footer → 无底部按钮,点遮罩即关闭
+	//  2) 按钮关闭: 自定义 footer + maskCloseable:false → 只能点底部按钮关闭
+	//     (OCS 全局设置里的「题库配置」弹窗就是第 2 种: $modal.prompt + 自定义 footer)
+	// 注意: 关闭用 $modal.* 的返回值(遮罩元素 .modal-wrapper), 直接 remove() 即可
+	// ---------------------------------------------------------------
+	function maskCloseModal() {
+		// 无 footer,点遮罩关闭(onClose)
+		$modal.simple({
+			title: '遮罩关闭弹窗',
+			width: 380,
+			content: h('div', [
+				h('p', '本弹窗为「遮罩关闭」样式。'),
+				h('p', { className: 'secondary' }, '没有底部按钮,点击弹窗外的遮罩任意位置即可关闭。')
+			])
+		});
+	}
+
+	function buttonCloseModal() {
+		const textarea = h('textarea', {
+			className: 'modal-input',
+			style: { minHeight: '120px', width: '100%', boxSizing: 'border-box' },
+			placeholder: '输入你的配置(示例)'
+		});
+		let modal;
+		const footer = h('div', { style: { width: '100%' } }, [
+			h('div', { className: 'separator secondary' }, '配置填写/修改区'),
+			textarea,
+			h('div', { style: { display: 'flex', justifyContent: 'end', marginTop: '12px' } }, [
+				h('button', '关闭', (btn) => {
+					btn.className = 'modal-cancel-button';
+					btn.style.marginRight = '12px';
+					btn.onclick = () => modal == null ? void 0 : modal.remove();
+				}),
+				h('button', '保存配置', (btn) => {
+					btn.className = 'modal-confirm-button';
+					btn.onclick = () => {
+						$message.success('已保存(示例)');
+						modal == null ? void 0 : modal.remove();
+					};
+				})
+			])
+		]);
+		// maskCloseable:false → 点遮罩不关闭; 传了 footer → 默认的输入框/取消/确定按钮被整体替换
+		modal = $modal.prompt({
+			title: '按钮关闭弹窗',
+			width: 520,
+			maskCloseable: false,
+			content: h('div', [
+				h('p', '本弹窗为「按钮关闭」样式(与 OCS「题库配置」弹窗一致)。'),
+				h('p', { className: 'secondary' }, '点遮罩不会关闭,请点击底部「关闭」或「保存配置」按钮。')
+			]),
+			footer
+		});
 	}
 
 	// ---------------------------------------------------------------

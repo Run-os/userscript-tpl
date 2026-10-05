@@ -1270,6 +1270,9 @@
             child.style.marginBottom = y / 2 + "px";
           } else {
             child.style.marginRight = x / 2 + "px";
+            // 首项也要带 margin-top: 否则它比其它项少 y/2 的上外边距,
+            // 在 .space{display:inline-flex}(默认 stretch)下首项会被拉高 y/2, 导致整行按钮错位
+            child.style.marginTop = y / 2 + "px";
             child.style.marginBottom = y / 2 + "px";
           }
           div.append(child);
@@ -3507,6 +3510,9 @@ color: #1890ff;
 }
 .space {
 display: inline-flex;
+/* 混排行(input/select/下拉/文本)高度不一样,默认 stretch 会让各项按顶部对齐而错位; */
+/* 居中对齐后,纯按钮行计算结果不变, 混排行才对齐 */
+align-items: center;
 }
 .config-details {
 animation: fade-in 0.5s;
