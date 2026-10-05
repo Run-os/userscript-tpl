@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         OCS-UI-TPL 油猴脚本 UI 模板
 // @namespace    https://github.com/ocsjs/easy-us
-// @version      1.2.0
+// @version      1.2.1
 // @description  OCS 网课助手同款悬浮窗 UI 模板(基于 easy-us + OCS 通用样式)。可被其他油猴脚本通过 @require 引用,快速搭建 悬浮窗/配置面板/消息/弹窗 UI。详情见 README。
 // @author       enncy (easy-us) + tpl
 // @license      MIT
@@ -3757,7 +3757,7 @@ function start(options) {
 }
 
 const OCSUITpl = {
-  VERSION: '1.2.0',
+  VERSION: '1.2.1',
   EUS: EUS,
   Script: EUS.Script,
   Project: EUS.Project,
