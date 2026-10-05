@@ -178,6 +178,9 @@ h('tag', attrs, handler) // 通用元素工厂(支持自定义元素 tag)
    - 传了 `footer` 后,默认的输入框/取消/确定按钮会被**整体替换**(`simple` 类型本来就无 footer)。
    - ⚠️ **`alert` 类型会用 CSS 隐藏 `.modal-input` 与 `.modal-cancel-button`**:要在 footer 里放输入框或次要按钮,请用 `simple`/`prompt` 类型。
    - **不支持 ESC 关闭**(原脚本也没有):遮罩关闭样式只能点遮罩退出。
+10. **`dropdown-element`(下拉菜单)的下拉内容用 `position: fixed` 渲染**:展开时会**溢出面板/弹窗边界**完整显示,不会被 `.body{overflow:auto}` 裁剪,也不会把面板撑出滚动条(与 OCS 4.15.3 一致;原实现 `position:absolute` 会被裁掉只剩前几项)。
+    - 展开坐标在每次 `show()` 时按触发元素实时计算,所以放在带 `transform` 的弹窗(`modal-element`)里也不会错位。
+    - 展开期间滚动页面/面板会自动收起下拉。
 
 ## 许可
 

@@ -1733,31 +1733,76 @@
       this.triggerElement = h("button");
       this.content = h("div", { className: "dropdown-content" });
       this.trigger = "hover";
+      this._onScroll = (e) => {
+        if (!this.content.classList.contains("show")) return;
+        if (e && e.target && this.content.contains(e.target)) return;
+        this.hide();
+      };
     }
     connectedCallback() {
       this.append(this.triggerElement, this.content);
       this.classList.add("dropdown");
       if (this.trigger === "click") {
         this.triggerElement.onclick = () => {
-          this.content.classList.toggle("show");
+          if (this.content.classList.contains("show")) {
+            this.hide();
+          } else {
+            this.show();
+          }
         };
       } else {
         this.triggerElement.onmouseover = () => {
-          this.content.classList.add("show");
+          this.show();
         };
         this.triggerElement.onmouseout = () => {
-          this.content.classList.remove("show");
+          this.hide();
         };
         this.content.onmouseover = () => {
-          this.content.classList.add("show");
+          this.show();
         };
         this.content.onmouseout = () => {
-          this.content.classList.remove("show");
+          this.hide();
         };
       }
       this.content.onclick = () => {
-        this.content.classList.remove("show");
+        this.hide();
       };
+      window.addEventListener("scroll", this._onScroll, true);
+    }
+    disconnectedCallback() {
+      window.removeEventListener("scroll", this._onScroll, true);
+    }
+    // 下拉内容脱离 overflow 裁剪的关键: position:fixed(.dropdown-content) + 实时坐标。
+    // 先把 left/top 归零量一次基准, 再用差值定位 —— 这样即使内容在
+    // 被 transform 的祖先(如 modal-element)里, 坐标系偏移也会自动抵消。
+    show() {
+      const content = this.content;
+      const trigger = this.triggerElement;
+      content.classList.add("show");
+      content.style.left = "0px";
+      content.style.top = "0px";
+      content.style.minWidth = trigger.getBoundingClientRect().width + "px";
+      const origin = content.getBoundingClientRect();
+      const rect = trigger.getBoundingClientRect();
+      let left = rect.left - origin.left;
+      let top = rect.bottom - origin.top;
+      content.style.left = left + "px";
+      content.style.top = top + "px";
+      const box = content.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      if (box.right > vw - 4 && box.width < vw - 8) {
+        left -= Math.min(box.right - (vw - 4), box.left - 4);
+        content.style.left = left + "px";
+      }
+      const box2 = content.getBoundingClientRect();
+      if (box2.bottom > vh - 4 && rect.top - box2.height > 4) {
+        top -= box2.bottom - rect.top;
+        content.style.top = top + "px";
+      }
+    }
+    hide() {
+      this.content.classList.remove("show");
     }
   }
   class HeaderElement extends IElement {
@@ -3481,7 +3526,9 @@ cursor: pointer;
 }
 .dropdown-content {
 display: none;
-position: absolute;
+/* position:fixed + JS 计算坐标(见 DropdownElement.show): 脱离面板/弹窗的 overflow 裁剪,
+原 absolute 会被 .body{overflow:auto} 截断并撑出滚动条 */
+position: fixed;
 background-color: #ffffff;
 overflow: auto;
 box-shadow: 0px 8px 16px 0px #00000033;
