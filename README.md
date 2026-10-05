@@ -190,8 +190,8 @@ h('tag', attrs, handler) // 通用元素工厂(支持自定义元素 tag)
 
 ## 发布指引
 
-1. 模板已发布到 <https://github.com/Run-os/userscript-tpl>;`@require` 直接使用 **GitHub raw** 链接:
-   `https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js`
+1. 模板已发布到 <https://github.com/Run-os/userscript-tpl>;`@require` 直接使用 **GitHub raw** 链接(末尾带版本查询串,每次版本变化都会强制脚本管理器重新拉取,避免缓存旧模板):
+   `https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js?v=<模板版本>`(示例脚本里当前为 `https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js?v=1.2.2`)
 2. 示例脚本 `example.user.js` 已就绪:安装后在浏览器打开 <https://example.com/?userscript-tpl> 即可看到悬浮窗效果。
 3. **协作/发布约定见 [`AGENTS.md`](AGENTS.md)**:每完成一项功能或修复,必须同步 README、递增版本号(模板 `@version` + `VERSION` 常量、示例 `@version`)、提交并推送到 `main`,并校验 raw 链接;提交前须核对 `git diff --numstat` 与 `git diff -w --numstat` 一致(无纯空白变更)。
 

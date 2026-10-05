@@ -1,13 +1,13 @@
 // ==UserScript==
 // @name         OCS-UI-TPL 示例脚本
 // @namespace    https://github.com/Run-os/userscript-tpl
-// @version      1.6.0
+// @version      1.6.1
 // @description  演示 OCSUITpl 模板用法:悬浮窗 + 配置面板 + 消息 + 弹窗 + 下拉菜单。测试地址: https://example.com/?userscript-tpl
 // @author       Run-os
 // @license      MIT
 // @match        https://example.com/*
 // @include      https://example.com/?userscript-tpl
-// @require      https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js
+// @require      https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js?v=1.2.2
 // @grant        unsafeWindow
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -25,7 +25,8 @@
 /**
  * OCS-UI-TPL 示例脚本
  *  - 通过 @require 引入模板(模板挂载的全局对象: window.OCSUITpl / window.EUS)
- *  - 模板链接走 GitHub raw(不使用 CDN:raw 直连仓库, main 推送后立即生效, 无缓存滞后): https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js
+ *  - 模板链接走 GitHub raw(不使用 CDN:raw 直连仓库, main 推送后立即生效, 无缓存滞后): https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js?v=1.2.2
+ *  - 末尾的 ?v= 是缓存失效串: 每次版本变化都会让 @require 成为新 URL, 强制脚本管理器重新拉取模板
  *  - 测试地址: 浏览器打开 https://example.com/?userscript-tpl(脚本仅在此站点运行)
  *  - 面板内: separator(脚本名) + notes(提示块,可多行) + configs(配置表单,自动持久化) + body(自定义内容)
  *  - 全局: $message / $modal / $menu / $ui.* 可供任意位置调用
