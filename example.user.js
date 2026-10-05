@@ -1,13 +1,15 @@
 // ==UserScript==
 // @name         OCS-UI-TPL 示例脚本
 // @namespace    https://github.com/Run-os/userscript-tpl
-// @version      1.6.2
+// @version      1.7.0
 // @description  演示 OCSUITpl 模板用法:悬浮窗 + 配置面板 + 消息 + 弹窗 + 下拉菜单。测试地址: https://example.com/?userscript-tpl
 // @author       Run-os
 // @license      MIT
 // @match        https://example.com/*
 // @include      https://example.com/?userscript-tpl
 // @require      https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js
+// @downloadURL  https://raw.githubusercontent.com/Run-os/userscript-tpl/main/example.user.js
+// @updateURL    https://raw.githubusercontent.com/Run-os/userscript-tpl/main/example.user.js
 // @grant        unsafeWindow
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -26,7 +28,10 @@
  * OCS-UI-TPL 示例脚本
  *  - 通过 @require 引入模板(模板挂载的全局对象: window.OCSUITpl / window.EUS)
  *  - 模板链接走 GitHub raw(不使用 CDN:raw 直连仓库, main 推送后立即生效, 无缓存滞后): https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js
- *  - 注意: 脚本管理器会缓存 @require(脚本猫把缓存当作 feature)。模板更新后若未生效,
+ *  - 本脚本带 @downloadURL/@updateURL: 用 URL 安装并在脚本猫里开启自动检查更新后,
+ *    脚本更新会连带重新下载 @require(脚本猫 installScript -> updateResourceByTypes),
+ *    模板即自动刷新;即使不开启, 脚本猫对资源有 24h TTL, 最迟一天也会自动重拉。
+ *  - 注意: 脚本管理器会缓存 @require(脚本猫把缓存当作 feature)。模板更新后若想**立刻**生效,
  *    请在管理器中打开本脚本 -> 「脚本资源」-> 删除该资源, 然后刷新页面;或直接删除脚本重新安装。
  *    详见 README「发布指引 - 更新模板后如何生效」
  *  - 测试地址: 浏览器打开 https://example.com/?userscript-tpl(脚本仅在此站点运行)

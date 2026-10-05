@@ -33,7 +33,7 @@
   - 文件头 `// @version      x.y.z`
   - 导出对象里的 `VERSION: 'x.y.z'`
 - 示例只改文件头 `// @version      x.y.z`。
-- **`@require` 不带查询串**（用户明确要求，避免维护麻烦）。代价是脚本管理器会缓存旧模板：更新后必须在回复里提醒用户**清空该脚本的「脚本资源」并刷新页面**，或删除脚本重装（步骤见 README 发布指引第 3 条）。
+- **`@require` 不带查询串**（用户明确要求，避免维护麻烦）。缓存问题由 `@downloadURL`/`@updateURL` + 脚本猫自动更新解决（脚本更新会连带重下 `@require`，另有 24h 资源 TTL 兜底）；只有需要**立刻生效**时才提醒用户清「脚本资源」并刷新。
 
 ## 3. 格式化与提交约定
 
@@ -58,7 +58,8 @@
 - 模板 / 示例的引用链接**统一使用 GitHub raw，不使用 CDN**（jsDelivr 对 `@main` 缓存滞后，会让用户拿到旧版本）：
   `https://raw.githubusercontent.com/Run-os/userscript-tpl/main/ocs-ui-tpl.user.js`
 - 推送后校验远端内容（版本号、新增标记）确实已更新。
-- 提醒用户：`@require` 有缓存（脚本猫视为 feature）。正确做法是 `脚本详情 → 脚本资源 → 删除该资源 → 刷新页面`；兜底是删除脚本重装。详见 README 发布指引第 3 条。
+- `@require` 有缓存（脚本猫视为 feature），但**不需要用户手动清**：`example.user.js` 声明了 `@downloadURL`/`@updateURL`，用户用 URL 安装并开启自动检查更新后，脚本更新会连带重新下载 `@require`（ScriptCat `installScript → updateResourceByTypes(["require", …])`）；不开启也有 24h 资源 TTL 兜底。
+- 需要**立刻**生效时才让用户 `脚本详情 → 脚本资源 → 删除该资源 → 刷新页面`（或删除脚本重装）。详见 README 发布指引第 3 条。
 
 ## 5. 提交信息
 
